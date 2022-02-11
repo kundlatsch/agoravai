@@ -1,0 +1,23 @@
+
+This is EPOS!
+
+Setting up this machine as follows: 
+  Mode:         built-in
+  Processor:    1 x Cortex A53 (ARMv8-A) at 600 MHz (BUS clock = 600 MHz)
+  Machine:      Raspberry Pi3
+  Memory:       1031167 KB [0x0000000000000000:0x000000003eefffff]
+  User memory:  899376 KB [0x0000000000000000:0x0000000036e4c000]
+  I/O space:    17408 KB [0x000000003ef00000:0x00000000400000ff]
+  Node Id:      will get from the network!
+  Position:     will get from the network!
+  Setup:        19840 bytes
+  Init:         5856 bytes
+  OS code:      106472 bytes	data: 2480 bytes    stack: 32768 bytes
+  APP code:     69616 bytes	data: 851968 bytes
+  Extras:       245760 bytes
+
+Hello world!
+The last thread has exited!
+Rebooting the machine ...
+Machine::reboot()
+Machine::reboot()
