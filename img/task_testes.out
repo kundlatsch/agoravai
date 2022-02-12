@@ -10,14 +10,16 @@ Setting up this machine as follows:
   I/O space:    17408 KB [0x000000003ef00000:0x00000000400000ff]
   Node Id:      will get from the network!
   Position:     will get from the network!
-  Setup:        19840 bytes
-  Init:         5856 bytes
-  OS code:      106472 bytes	data: 2480 bytes    stack: 32768 bytes
-  APP code:     69616 bytes	data: 851968 bytes
-  Extras:       245760 bytes
+  Setup:        19968 bytes
+  Init:         8136 bytes
+  OS code:      106472 bytes	data: 2496 bytes    stack: 32768 bytes
+  APP code:     69616 bytes	data: 868352 bytes
+  Extras:       262144 bytes
 
-Hello world!
-The last thread has exited!
-Rebooting the machine ...
-Machine::reboot()
-Machine::reboot()
+Task Addres Space and Segment test
+App location in System Info 
+ App Code Segment :0x0000000036e38000
+ App Data Segment :0x0000000036d64000
+
+My address space's pAssertion fail: i < INTS, function=static void EPOS::S::IC::
+dispatch(unsigned int), file=cortex_ic.cc, line=

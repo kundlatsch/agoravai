@@ -15,12 +15,9 @@ __BEGIN_SYS
 
 IC::Interrupt_Handler IC::_int_vector[IC::INTS];
 
+// Aqui tem um erro
 void IC::dispatch(unsigned int i)
 {
-#ifdef __arch_armv8__
-    i = int_id();
-#endif
-
     if((i != INT_SYS_TIMER) || Traits<IC>::hysterically_debugged)
         db<IC>(TRC) << "IC::dispatch(i=" << i << ")" << endl;
 
@@ -129,6 +126,49 @@ extern "C" { void _dispatch(unsigned int) __attribute__ ((alias("_ZN4EPOS1S2IC8d
 
 void IC::entry()
 {
+    ASM("	stp	x0, x1, [sp, #-16]!                                                 \t\n\
+            mrs x0, spsr_el1           // for reentrant interrupts                  \t\n\
+            mrs x1, elr_el1            //                                           \t\n\
+        	stp	x0, x1, [sp, #-16]!                                                 \t\n\
+            stp	x2, x3, [sp, #-16]!                                                 \t\n\
+            stp	x4, x5, [sp, #-16]!                                                 \t\n\
+            stp	x6, x7, [sp, #-16]!                                                 \t\n\
+            stp	x8, x9, [sp, #-16]!                                                 \t\n\
+            stp	x10, x11, [sp, #-16]!                                               \t\n\
+            stp	x12, x13, [sp, #-16]!                                               \t\n\
+            stp	x14, x15, [sp, #-16]!                                               \t\n\
+            stp	x16, x17, [sp, #-16]!                                               \t\n\
+            stp	x18, x19, [sp, #-16]!                                               \t\n\
+            stp	x20, x21, [sp, #-16]!                                               \t\n\
+            stp	x22, x23, [sp, #-16]!                                               \t\n\
+            stp	x24, x25, [sp, #-16]!                                               \t\n\
+            stp	x26, x27, [sp, #-16]!                                               \t\n\
+            stp	x28, x29, [sp, #-16]!                                               \t\n\
+            str	x30, [sp, #-8]!                                                     \t\n\
+                                                                                    \t\n\
+            bl _dispatch                                                            \t\n\
+                                                                                    \t\n\
+            ldp	x0, x1, [sp], #16                                                   \t\n\
+            ldp	x2, x3, [sp], #16                                                   \t\n\
+            msr spsr_el1, x2                                                        \t\n\
+            msr elr_el1, x3                                                         \t\n\
+            ldp	x2, x3, [sp], #16                                                   \t\n\
+            ldp	x4, x5, [sp], #16                                                   \t\n\
+            ldp	x6, x7, [sp], #16                                                   \t\n\
+            ldp	x8, x9, [sp], #16                                                   \t\n\
+            ldp	x10, x11, [sp], #16                                                 \t\n\
+            ldp	x12, x13, [sp], #16                                                 \t\n\
+            ldp	x14, x15, [sp], #16                                                 \t\n\
+            ldp	x16, x17, [sp], #16                                                 \t\n\
+            ldp	x18, x19, [sp], #16                                                 \t\n\
+            ldp	x20, x21, [sp], #16                                                 \t\n\
+            ldp	x22, x23, [sp], #16                                                 \t\n\
+            ldp	x24, x25, [sp], #16                                                 \t\n\
+            ldp	x26, x27, [sp], #16                                                 \t\n\
+            ldp	x28, x29, [sp], #16                                                 \t\n\
+            ldr	x30, [sp], #8                                                       \t\n\
+                                                                                    \t\n\
+            eret                                                                    \t");
 }
 
 #endif    

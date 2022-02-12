@@ -279,7 +279,8 @@ public:
 
     static unsigned int id() { return 0; }
     static unsigned int cores() { return 1; }
-    static void smp_barrier(unsigned long cores = cores()) { assert(cores == 1); }
+    static void smp_barrier() {smp_barrier(cores()); }
+    static void smp_barrier(unsigned long cores) { assert(cores == 1); }
 
     static void fpu_save() {}           // no FPU in M3, implement for M4
     static void fpu_restore() {}        // no FPU in M3, implement for M4

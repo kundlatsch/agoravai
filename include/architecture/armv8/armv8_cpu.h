@@ -469,7 +469,8 @@ public:
     using CPU_Common::fdec;	// TODO
     using CPU_Common::cas;	// TODO
  
-    static void smp_barrier(unsigned long cores = cores()) { CPU_Common::smp_barrier<&finc>(cores, id()); }
+    static void smp_barrier() {smp_barrier(cores()); }
+    static void smp_barrier(unsigned long cores) { CPU_Common::smp_barrier<&finc>(cores, id()); }
 
     static void switch_context(Context ** o, Context * n);
 

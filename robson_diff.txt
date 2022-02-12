@@ -1,0 +1,1562 @@
+diff --git a/app/fork_test/fork_test.cc b/app/fork_test/fork_test.cc
+deleted file mode 100644
+index f821098..0000000
+--- a/app/fork_test/fork_test.cc
++++ /dev/null
+@@ -1,48 +0,0 @@
+-// EPOS Task Test Program
+-
+-#include <time.h>
+-#include <process.h>
+-#include <machine.h>
+-#include <utility/fork.h>
+-
+-using namespace EPOS;
+-
+-int print_inf();
+-
+-OStream cout;
+-
+-int main()
+-{
+-    cout << "=====Test Task Fork "<< Task::self()->id()<<"=====" << endl;
+-
+-    if (Task::self()->id() == 0) {
+-        fork(&main);
+-        fork(&main);
+-        cout << "Hello World! I'm Task: "<< Task::self()->id() << endl;
+-    }
+-    if (Task::self()->id() == 1) {
+-        cout << "Konnichiwa I'm Task: "<< Task::self()->id() << endl;
+-    }
+-    if (Task::self()->id() == 2) {
+-        cout << "Annyeong haseyo I'm Task: "<< Task::self()->id() << endl;
+-    }
+-
+-    print_inf();
+-    cout << "Sayonara, bye! o/" << endl;
+-    return 0;
+-}
+-
+-int print_inf() {
+-    Task * task = Task::self();
+-    Address_Space * as = task->address_space();
+-    cout << "===========================================" << "\n"
+-         << "=Address Space page directory: " << as->pd() << "=\n"
+-         << "=Code Logical Addr: " << static_cast<void *>(task->code()) << "=\n"
+-         << "=Code Physical Addr: " << static_cast<void *>(as->physical(task->code())) << "=\n"
+-         << "=Code Size: " << task->code_segment()->size() << " bytes long" << "=\n"
+-         << "=Data Logical Addr: " << static_cast<void *>(task->data()) << "=\n"
+-         << "=Data Physical Addr: " << static_cast<void *>(as->physical(task->data())) << "=\n"
+-         << "=Data Size: " << task->data_segment()->size() << " bytes long" << "=\n"
+-         << "===========================================" << endl;
+-    return 0;
+-}
+diff --git a/app/fork_test/fork_test_traits.h b/app/fork_test/fork_test_traits.h
+deleted file mode 100644
+index bb93335..0000000
+--- a/app/fork_test/fork_test_traits.h
++++ /dev/null
+@@ -1,244 +0,0 @@
+-#ifndef __traits_h
+-#define __traits_h
+-
+-#include <system/config.h>
+-
+-__BEGIN_SYS
+-
+-// Build
+-template<> struct Traits<Build>: public Traits_Tokens
+-{
+-    // Basic configuration
+-    static const unsigned int MODE = BUILTIN;
+-    static const unsigned int ARCHITECTURE = ARMv7;
+-    static const unsigned int MACHINE = Cortex;
+-    static const unsigned int MODEL = Raspberry_Pi3;
+-    static const unsigned int CPUS = 1;
+-    static const unsigned int NODES = 1; // (> 1 => NETWORKING)
+-    static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
+-
+-    // Default flags
+-    static const bool enabled = true;
+-    static const bool monitored = false;
+-    static const bool debugged = true;
+-    static const bool hysterically_debugged = false;
+-
+-    // Default aspects
+-    typedef ALIST<> ASPECTS;
+-};
+-
+-
+-// Utilities
+-template<> struct Traits<Debug>: public Traits<Build>
+-{
+-    static const bool error   = true;
+-    static const bool warning = true;
+-    static const bool info    = false;
+-    static const bool trace   = false;
+-};
+-
+-template<> struct Traits<Lists>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Spin>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Heaps>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Ciphers>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Observers>: public Traits<Build>
+-{
+-    // Some observed objects are created before initializing the Display
+-    // Enabling debug may cause trouble in some Machines
+-    static const bool debugged = false;
+-};
+-
+-
+-// System Parts (mostly to fine control debugging)
+-template<> struct Traits<Boot>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Setup>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Init>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Framework>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Aspect>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-
+-    typedef ALIST<Shared, Authenticated> ASPECTS;
+-};
+-
+-
+-__END_SYS
+-
+-// Mediators
+-#include __ARCHITECTURE_TRAITS_H
+-#include __MACHINE_TRAITS_H
+-
+-__BEGIN_SYS
+-
+-
+-// API Components
+-template<> struct Traits<Application>: public Traits<Build>
+-{
+-    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
+-    static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
+-    static const unsigned int MAX_THREADS = Traits<Machine>::MAX_THREADS;
+-};
+-
+-template<> struct Traits<System>: public Traits<Build>
+-{
+-    static const unsigned int mode = Traits<Build>::MODE;
+-    static const bool multithread = (Traits<Build>::CPUS > 1) || (Traits<Application>::MAX_THREADS > 1);
+-    static const bool multitask = (mode != Traits<Build>::LIBRARY);
+-    static const bool multicore = (Traits<Build>::CPUS > 1) && multithread;
+-    static const bool multiheap = multitask || Traits<Scratchpad>::enabled;
+-
+-    static const unsigned long LIFE_SPAN = 1 * YEAR; // s
+-    static const unsigned int DUTY_CYCLE = 1000000; // ppm
+-
+-    static const bool reboot = true;
+-
+-    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
+-    static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
+-};
+-
+-template<> struct Traits<Task>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multitask;
+-};
+-
+-template<> struct Traits<Thread>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multithread;
+-    static const bool smp = Traits<System>::multicore;
+-    static const bool simulate_capacity = false;
+-    static const bool trace_idle = hysterically_debugged;
+-
+-    typedef RR Criterion;
+-    static const unsigned int QUANTUM = 10000; // us
+-};
+-
+-template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
+-{
+-    static const bool debugged = Traits<Thread>::trace_idle || hysterically_debugged;
+-};
+-
+-template<> struct Traits<Synchronizer>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multithread;
+-};
+-
+-template<> struct Traits<Alarm>: public Traits<Build>
+-{
+-    static const bool visible = hysterically_debugged;
+-};
+-
+-template<> struct Traits<SmartData>: public Traits<Build>
+-{
+-    static const unsigned char PREDICTOR = NONE;
+-};
+-
+-template<> struct Traits<Network>: public Traits<Build>
+-{
+-    typedef LIST<TSTP> NETWORKS;
+-
+-    static const unsigned int RETRIES = 3;
+-    static const unsigned int TIMEOUT = 10; // s
+-
+-    static const bool enabled = (Traits<Build>::NODES > 1) && (NETWORKS::Length > 0);
+-};
+-
+-template<> struct Traits<ELP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<ELP>::Result > 0);
+-};
+-
+-template<> struct Traits<TSTP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    static const unsigned int KEY_SIZE = 16;
+-    static const unsigned int RADIO_RANGE = 8000; // approximated radio range in centimeters
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<TSTP>::Result > 0);
+-};
+-
+-template<> struct Traits<IP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0};  // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    struct Default_Config {
+-        static const unsigned int  TYPE    = DHCP;
+-        static const unsigned long ADDRESS = 0;
+-        static const unsigned long NETMASK = 0;
+-        static const unsigned long GATEWAY = 0;
+-    };
+-
+-    template<unsigned int UNIT>
+-    struct Config: public Default_Config {};
+-
+-    static const unsigned int TTL  = 0x40; // Time-to-live
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<IP>::Result > 0);
+-};
+-
+-template<> struct Traits<UDP>: public Traits<Network>
+-{
+-    static const bool checksum = true;
+-};
+-
+-template<> struct Traits<TCP>: public Traits<Network>
+-{
+-    static const unsigned int WINDOW = 4096;
+-};
+-
+-template<> struct Traits<DHCP>: public Traits<Network>
+-{
+-};
+-
+-template<> struct Traits<Monitor>: public Traits<Build>
+-{
+-    static const bool enabled = monitored;
+-
+-    static constexpr System_Event SYSTEM_EVENTS[]                 = {ELAPSED_TIME, DEADLINE_MISSES, CPU_EXECUTION_TIME, THREAD_EXECUTION_TIME, RUNNING_THREAD};
+-    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {           1,               1,                  1,                     1,              1}; // in Hz
+-
+-    static constexpr PMU_Event PMU_EVENTS[]                       = {COMMITED_INSTRUCTIONS, BRANCHES, CACHE_MISSES};
+-    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {                    1,        1,            1}; // in Hz
+-
+-    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {CPU_VOLTAGE, CPU_TEMPERATURE};
+-    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {          1,           1}; // in Hz
+-};
+-
+-__END_SYS
+-
+-#endif
+diff --git a/app/fork_test/makefile b/app/fork_test/makefile
+deleted file mode 100644
+index 8a6578a..0000000
+--- a/app/fork_test/makefile
++++ /dev/null
+@@ -1,17 +0,0 @@
+-# EPOS Application Makefile
+-
+-include ../../makedefs
+-
+-all: install
+-
+-$(APPLICATION):	$(APPLICATION).o $(LIB)/*
+-		$(ALD) $(ALDFLAGS) -o $@ $(APPLICATION).o
+-
+-$(APPLICATION).o: $(APPLICATION).cc $(SRC)
+-		$(ACC) $(ACCFLAGS) -o $@ $<
+-
+-install: $(APPLICATION)
+-		$(INSTALL) $(APPLICATION) $(IMG)
+-
+-clean:
+-		$(CLEAN) *.o $(APPLICATION)
+diff --git a/app/task_test/makefile b/app/task_test/makefile
+deleted file mode 100644
+index 8a6578a..0000000
+--- a/app/task_test/makefile
++++ /dev/null
+@@ -1,17 +0,0 @@
+-# EPOS Application Makefile
+-
+-include ../../makedefs
+-
+-all: install
+-
+-$(APPLICATION):	$(APPLICATION).o $(LIB)/*
+-		$(ALD) $(ALDFLAGS) -o $@ $(APPLICATION).o
+-
+-$(APPLICATION).o: $(APPLICATION).cc $(SRC)
+-		$(ACC) $(ACCFLAGS) -o $@ $<
+-
+-install: $(APPLICATION)
+-		$(INSTALL) $(APPLICATION) $(IMG)
+-
+-clean:
+-		$(CLEAN) *.o $(APPLICATION)
+diff --git a/app/task_test/task_test.cc b/app/task_test/task_test.cc
+deleted file mode 100644
+index 9094190..0000000
+--- a/app/task_test/task_test.cc
++++ /dev/null
+@@ -1,56 +0,0 @@
+-// EPOS Task Test Program
+-
+-#include <time.h>
+-#include <process.h>
+-#include <machine.h>
+-#include <system.h>
+-
+-using namespace EPOS;
+-
+-OStream cout;
+-
+-int main()
+-{
+-    cout << "Task Addres Space and Segment test" << endl;
+-    System_Info * si = System::info();
+-    cout << "App location in System Info \n" 
+-         << " App Code Segment :" << CPU::Phy_Addr(si->pmm.app_code) << "\n"
+-         << " App Data Segment :" << CPU::Phy_Addr(si->pmm.app_data)
+-         << endl;
+-
+-    Task * task0 = Task::self();
+-    Address_Space * as0 = task0->address_space();
+-    cout << "\nMy address space's page directory is located at " << as0->pd() << endl;
+-
+-    Segment * cs0 = task0->code_segment();
+-    CPU::Log_Addr code0 = task0->code();
+-    CPU::Phy_Addr code_phy = as0->physical(code0);
+-    cout << "\nMy code segment is : " << "\n"
+-         << "Logical Addr: " << static_cast<void *>(code0) << "\n"
+-         << "Physical Addr: " << static_cast<void *>(code_phy) << "\n"
+-         << "Size: " << cs0->size() << " bytes long" << endl;
+-
+-    // Assert if Logical Memory is Valid in Code Segment
+-    cout << "\nAssert if logic code is valid" << endl;
+-    assert(code0 == Memory_Map::APP_CODE);
+-
+-    Segment * ds0 = task0->data_segment();
+-    CPU::Log_Addr data0 = task0->data();
+-    CPU::Phy_Addr data_phy = as0->physical(data0);
+-    cout << "\nMy data segment is : " << "\n"
+-         << "Logical Addr: " << static_cast<void *>(data0) << "\n"
+-         << "Physical Addr: " << static_cast<void *>(data_phy) << "\n"
+-         << "Size: " << ds0->size() << " bytes long" << endl;
+-    
+-    // Assert if Logical Memory is Valid in Data Segment
+-    cout << "\nAssert if logic data is valid" << endl;
+-    assert(data0 == Memory_Map::APP_DATA);
+-
+-    // Assert if the Physicall memory data is located with correct space from code
+-    cout << "Assert if phy data has size needed" << endl;
+-    assert((data_phy + ds0->size()) == code_phy);
+-
+-    cout << "I'm done, bye!" << endl;
+-    return 0;
+-}
+-
+diff --git a/app/task_test/task_test_traits.h b/app/task_test/task_test_traits.h
+deleted file mode 100644
+index bb93335..0000000
+--- a/app/task_test/task_test_traits.h
++++ /dev/null
+@@ -1,244 +0,0 @@
+-#ifndef __traits_h
+-#define __traits_h
+-
+-#include <system/config.h>
+-
+-__BEGIN_SYS
+-
+-// Build
+-template<> struct Traits<Build>: public Traits_Tokens
+-{
+-    // Basic configuration
+-    static const unsigned int MODE = BUILTIN;
+-    static const unsigned int ARCHITECTURE = ARMv7;
+-    static const unsigned int MACHINE = Cortex;
+-    static const unsigned int MODEL = Raspberry_Pi3;
+-    static const unsigned int CPUS = 1;
+-    static const unsigned int NODES = 1; // (> 1 => NETWORKING)
+-    static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
+-
+-    // Default flags
+-    static const bool enabled = true;
+-    static const bool monitored = false;
+-    static const bool debugged = true;
+-    static const bool hysterically_debugged = false;
+-
+-    // Default aspects
+-    typedef ALIST<> ASPECTS;
+-};
+-
+-
+-// Utilities
+-template<> struct Traits<Debug>: public Traits<Build>
+-{
+-    static const bool error   = true;
+-    static const bool warning = true;
+-    static const bool info    = false;
+-    static const bool trace   = false;
+-};
+-
+-template<> struct Traits<Lists>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Spin>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Heaps>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Ciphers>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Observers>: public Traits<Build>
+-{
+-    // Some observed objects are created before initializing the Display
+-    // Enabling debug may cause trouble in some Machines
+-    static const bool debugged = false;
+-};
+-
+-
+-// System Parts (mostly to fine control debugging)
+-template<> struct Traits<Boot>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Setup>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Init>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Framework>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Aspect>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-
+-    typedef ALIST<Shared, Authenticated> ASPECTS;
+-};
+-
+-
+-__END_SYS
+-
+-// Mediators
+-#include __ARCHITECTURE_TRAITS_H
+-#include __MACHINE_TRAITS_H
+-
+-__BEGIN_SYS
+-
+-
+-// API Components
+-template<> struct Traits<Application>: public Traits<Build>
+-{
+-    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
+-    static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
+-    static const unsigned int MAX_THREADS = Traits<Machine>::MAX_THREADS;
+-};
+-
+-template<> struct Traits<System>: public Traits<Build>
+-{
+-    static const unsigned int mode = Traits<Build>::MODE;
+-    static const bool multithread = (Traits<Build>::CPUS > 1) || (Traits<Application>::MAX_THREADS > 1);
+-    static const bool multitask = (mode != Traits<Build>::LIBRARY);
+-    static const bool multicore = (Traits<Build>::CPUS > 1) && multithread;
+-    static const bool multiheap = multitask || Traits<Scratchpad>::enabled;
+-
+-    static const unsigned long LIFE_SPAN = 1 * YEAR; // s
+-    static const unsigned int DUTY_CYCLE = 1000000; // ppm
+-
+-    static const bool reboot = true;
+-
+-    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
+-    static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
+-};
+-
+-template<> struct Traits<Task>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multitask;
+-};
+-
+-template<> struct Traits<Thread>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multithread;
+-    static const bool smp = Traits<System>::multicore;
+-    static const bool simulate_capacity = false;
+-    static const bool trace_idle = hysterically_debugged;
+-
+-    typedef RR Criterion;
+-    static const unsigned int QUANTUM = 10000; // us
+-};
+-
+-template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
+-{
+-    static const bool debugged = Traits<Thread>::trace_idle || hysterically_debugged;
+-};
+-
+-template<> struct Traits<Synchronizer>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multithread;
+-};
+-
+-template<> struct Traits<Alarm>: public Traits<Build>
+-{
+-    static const bool visible = hysterically_debugged;
+-};
+-
+-template<> struct Traits<SmartData>: public Traits<Build>
+-{
+-    static const unsigned char PREDICTOR = NONE;
+-};
+-
+-template<> struct Traits<Network>: public Traits<Build>
+-{
+-    typedef LIST<TSTP> NETWORKS;
+-
+-    static const unsigned int RETRIES = 3;
+-    static const unsigned int TIMEOUT = 10; // s
+-
+-    static const bool enabled = (Traits<Build>::NODES > 1) && (NETWORKS::Length > 0);
+-};
+-
+-template<> struct Traits<ELP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<ELP>::Result > 0);
+-};
+-
+-template<> struct Traits<TSTP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    static const unsigned int KEY_SIZE = 16;
+-    static const unsigned int RADIO_RANGE = 8000; // approximated radio range in centimeters
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<TSTP>::Result > 0);
+-};
+-
+-template<> struct Traits<IP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0};  // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    struct Default_Config {
+-        static const unsigned int  TYPE    = DHCP;
+-        static const unsigned long ADDRESS = 0;
+-        static const unsigned long NETMASK = 0;
+-        static const unsigned long GATEWAY = 0;
+-    };
+-
+-    template<unsigned int UNIT>
+-    struct Config: public Default_Config {};
+-
+-    static const unsigned int TTL  = 0x40; // Time-to-live
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<IP>::Result > 0);
+-};
+-
+-template<> struct Traits<UDP>: public Traits<Network>
+-{
+-    static const bool checksum = true;
+-};
+-
+-template<> struct Traits<TCP>: public Traits<Network>
+-{
+-    static const unsigned int WINDOW = 4096;
+-};
+-
+-template<> struct Traits<DHCP>: public Traits<Network>
+-{
+-};
+-
+-template<> struct Traits<Monitor>: public Traits<Build>
+-{
+-    static const bool enabled = monitored;
+-
+-    static constexpr System_Event SYSTEM_EVENTS[]                 = {ELAPSED_TIME, DEADLINE_MISSES, CPU_EXECUTION_TIME, THREAD_EXECUTION_TIME, RUNNING_THREAD};
+-    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {           1,               1,                  1,                     1,              1}; // in Hz
+-
+-    static constexpr PMU_Event PMU_EVENTS[]                       = {COMMITED_INSTRUCTIONS, BRANCHES, CACHE_MISSES};
+-    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {                    1,        1,            1}; // in Hz
+-
+-    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {CPU_VOLTAGE, CPU_TEMPERATURE};
+-    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {          1,           1}; // in Hz
+-};
+-
+-__END_SYS
+-
+-#endif
+diff --git a/app/timer_test/makefile b/app/timer_test/makefile
+deleted file mode 100644
+index 8a6578a..0000000
+--- a/app/timer_test/makefile
++++ /dev/null
+@@ -1,17 +0,0 @@
+-# EPOS Application Makefile
+-
+-include ../../makedefs
+-
+-all: install
+-
+-$(APPLICATION):	$(APPLICATION).o $(LIB)/*
+-		$(ALD) $(ALDFLAGS) -o $@ $(APPLICATION).o
+-
+-$(APPLICATION).o: $(APPLICATION).cc $(SRC)
+-		$(ACC) $(ACCFLAGS) -o $@ $<
+-
+-install: $(APPLICATION)
+-		$(INSTALL) $(APPLICATION) $(IMG)
+-
+-clean:
+-		$(CLEAN) *.o $(APPLICATION)
+diff --git a/app/timer_test/timer_test.cc b/app/timer_test/timer_test.cc
+deleted file mode 100644
+index 1742e6f..0000000
+--- a/app/timer_test/timer_test.cc
++++ /dev/null
+@@ -1,64 +0,0 @@
+-// EPOS Segment Test Program
+-#include <time.h>
+-#include <process.h>
+-#include <machine.h>
+-#include <utility/fork.h>
+-
+-using namespace EPOS;
+-
+-int func_a();
+-int print_inf();
+-
+-OStream cout;
+-
+-int main()
+-{
+-    cout << "=====Test Task Fork "<< Task::self()->id()<<"=====" << endl;
+-
+-    if (Task::self()->id() == 0) {
+-        fork(&func_a);
+-        fork(&func_a);
+-        cout << "Hello World! I'm Task: "<< Task::self()->id() << endl;
+-    }
+-    if (Task::self()->id() == 1) {
+-        cout << "Konnichiwa I'm Task: "<< Task::self()->id() << endl;
+-        func_a();
+-    }
+-    if (Task::self()->id() == 2) {
+-        cout << "Annyeong haseyo I'm Task: "<< Task::self()->id() << endl;
+-        func_a();
+-    }
+-
+-    print_inf();
+-    cout << "Sayonara, bye! o/" << endl;
+-    return 0;
+-}
+-
+-int print_inf() {
+-    Task * task = Task::self();
+-    Address_Space * as = task->address_space();
+-    cout << "===========================================" << "\n"
+-         << "=Address Space page directory: " << as->pd() << "=\n"
+-         << "=Code Logical Addr: " << static_cast<void *>(task->code()) << "=\n"
+-         << "=Code Physical Addr: " << static_cast<void *>(as->physical(task->code())) << "=\n"
+-         << "=Code Size: " << task->code_segment()->size() << " bytes long" << "=\n"
+-         << "=Data Logical Addr: " << static_cast<void *>(task->data()) << "=\n"
+-         << "=Data Physical Addr: " << static_cast<void *>(as->physical(task->data())) << "=\n"
+-         << "=Data Size: " << task->data_segment()->size() << " bytes long" << "=\n"
+-         << "===========================================" << endl;
+-    return 0;
+-}
+-
+-int func_a() {
+-    cout << "Konnichiwa I'm Task: "<< Task::self()->id() << endl;
+-    int step = 1000000;
+-    for (int i = 0; i < 100000000; ++i) {
+-      if (!(i % step)) {
+-        ASM("_func_a_h:");
+-        cout << "Checkpoint! ("<<Task::self()->id() <<")("<<i/step<<")" << endl;
+-        // Alarm::delay(100000);
+-      }
+-    }
+-    cout << "Task " << Task::self()->id() << "says sayonara!" << endl;
+-    return 0;
+-}
+diff --git a/app/timer_test/timer_test_traits.h b/app/timer_test/timer_test_traits.h
+deleted file mode 100644
+index bb93335..0000000
+--- a/app/timer_test/timer_test_traits.h
++++ /dev/null
+@@ -1,244 +0,0 @@
+-#ifndef __traits_h
+-#define __traits_h
+-
+-#include <system/config.h>
+-
+-__BEGIN_SYS
+-
+-// Build
+-template<> struct Traits<Build>: public Traits_Tokens
+-{
+-    // Basic configuration
+-    static const unsigned int MODE = BUILTIN;
+-    static const unsigned int ARCHITECTURE = ARMv7;
+-    static const unsigned int MACHINE = Cortex;
+-    static const unsigned int MODEL = Raspberry_Pi3;
+-    static const unsigned int CPUS = 1;
+-    static const unsigned int NODES = 1; // (> 1 => NETWORKING)
+-    static const unsigned int EXPECTED_SIMULATION_TIME = 60; // s (0 => not simulated)
+-
+-    // Default flags
+-    static const bool enabled = true;
+-    static const bool monitored = false;
+-    static const bool debugged = true;
+-    static const bool hysterically_debugged = false;
+-
+-    // Default aspects
+-    typedef ALIST<> ASPECTS;
+-};
+-
+-
+-// Utilities
+-template<> struct Traits<Debug>: public Traits<Build>
+-{
+-    static const bool error   = true;
+-    static const bool warning = true;
+-    static const bool info    = false;
+-    static const bool trace   = false;
+-};
+-
+-template<> struct Traits<Lists>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Spin>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Heaps>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-};
+-
+-template<> struct Traits<Ciphers>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Observers>: public Traits<Build>
+-{
+-    // Some observed objects are created before initializing the Display
+-    // Enabling debug may cause trouble in some Machines
+-    static const bool debugged = false;
+-};
+-
+-
+-// System Parts (mostly to fine control debugging)
+-template<> struct Traits<Boot>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Setup>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Init>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Framework>: public Traits<Build>
+-{
+-};
+-
+-template<> struct Traits<Aspect>: public Traits<Build>
+-{
+-    static const bool debugged = hysterically_debugged;
+-
+-    typedef ALIST<Shared, Authenticated> ASPECTS;
+-};
+-
+-
+-__END_SYS
+-
+-// Mediators
+-#include __ARCHITECTURE_TRAITS_H
+-#include __MACHINE_TRAITS_H
+-
+-__BEGIN_SYS
+-
+-
+-// API Components
+-template<> struct Traits<Application>: public Traits<Build>
+-{
+-    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
+-    static const unsigned int HEAP_SIZE = Traits<Machine>::HEAP_SIZE;
+-    static const unsigned int MAX_THREADS = Traits<Machine>::MAX_THREADS;
+-};
+-
+-template<> struct Traits<System>: public Traits<Build>
+-{
+-    static const unsigned int mode = Traits<Build>::MODE;
+-    static const bool multithread = (Traits<Build>::CPUS > 1) || (Traits<Application>::MAX_THREADS > 1);
+-    static const bool multitask = (mode != Traits<Build>::LIBRARY);
+-    static const bool multicore = (Traits<Build>::CPUS > 1) && multithread;
+-    static const bool multiheap = multitask || Traits<Scratchpad>::enabled;
+-
+-    static const unsigned long LIFE_SPAN = 1 * YEAR; // s
+-    static const unsigned int DUTY_CYCLE = 1000000; // ppm
+-
+-    static const bool reboot = true;
+-
+-    static const unsigned int STACK_SIZE = Traits<Machine>::STACK_SIZE;
+-    static const unsigned int HEAP_SIZE = (Traits<Application>::MAX_THREADS + 1) * Traits<Application>::STACK_SIZE;
+-};
+-
+-template<> struct Traits<Task>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multitask;
+-};
+-
+-template<> struct Traits<Thread>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multithread;
+-    static const bool smp = Traits<System>::multicore;
+-    static const bool simulate_capacity = false;
+-    static const bool trace_idle = hysterically_debugged;
+-
+-    typedef RR Criterion;
+-    static const unsigned int QUANTUM = 10000; // us
+-};
+-
+-template<> struct Traits<Scheduler<Thread>>: public Traits<Build>
+-{
+-    static const bool debugged = Traits<Thread>::trace_idle || hysterically_debugged;
+-};
+-
+-template<> struct Traits<Synchronizer>: public Traits<Build>
+-{
+-    static const bool enabled = Traits<System>::multithread;
+-};
+-
+-template<> struct Traits<Alarm>: public Traits<Build>
+-{
+-    static const bool visible = hysterically_debugged;
+-};
+-
+-template<> struct Traits<SmartData>: public Traits<Build>
+-{
+-    static const unsigned char PREDICTOR = NONE;
+-};
+-
+-template<> struct Traits<Network>: public Traits<Build>
+-{
+-    typedef LIST<TSTP> NETWORKS;
+-
+-    static const unsigned int RETRIES = 3;
+-    static const unsigned int TIMEOUT = 10; // s
+-
+-    static const bool enabled = (Traits<Build>::NODES > 1) && (NETWORKS::Length > 0);
+-};
+-
+-template<> struct Traits<ELP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<ELP>::Result > 0);
+-};
+-
+-template<> struct Traits<TSTP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0}; // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    static const unsigned int KEY_SIZE = 16;
+-    static const unsigned int RADIO_RANGE = 8000; // approximated radio range in centimeters
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<TSTP>::Result > 0);
+-};
+-
+-template<> struct Traits<IP>: public Traits<Network>
+-{
+-    typedef Ethernet NIC_Family;
+-    static constexpr unsigned int NICS[] = {0};  // relative to NIC_Family (i.e. Traits<Ethernet>::DEVICES[NICS[i]]
+-    static const unsigned int UNITS = COUNTOF(NICS);
+-
+-    struct Default_Config {
+-        static const unsigned int  TYPE    = DHCP;
+-        static const unsigned long ADDRESS = 0;
+-        static const unsigned long NETMASK = 0;
+-        static const unsigned long GATEWAY = 0;
+-    };
+-
+-    template<unsigned int UNIT>
+-    struct Config: public Default_Config {};
+-
+-    static const unsigned int TTL  = 0x40; // Time-to-live
+-
+-    static const bool enabled = Traits<Network>::enabled && (NETWORKS::Count<IP>::Result > 0);
+-};
+-
+-template<> struct Traits<UDP>: public Traits<Network>
+-{
+-    static const bool checksum = true;
+-};
+-
+-template<> struct Traits<TCP>: public Traits<Network>
+-{
+-    static const unsigned int WINDOW = 4096;
+-};
+-
+-template<> struct Traits<DHCP>: public Traits<Network>
+-{
+-};
+-
+-template<> struct Traits<Monitor>: public Traits<Build>
+-{
+-    static const bool enabled = monitored;
+-
+-    static constexpr System_Event SYSTEM_EVENTS[]                 = {ELAPSED_TIME, DEADLINE_MISSES, CPU_EXECUTION_TIME, THREAD_EXECUTION_TIME, RUNNING_THREAD};
+-    static constexpr unsigned int SYSTEM_EVENTS_FREQUENCIES[]     = {           1,               1,                  1,                     1,              1}; // in Hz
+-
+-    static constexpr PMU_Event PMU_EVENTS[]                       = {COMMITED_INSTRUCTIONS, BRANCHES, CACHE_MISSES};
+-    static constexpr unsigned int PMU_EVENTS_FREQUENCIES[]        = {                    1,        1,            1}; // in Hz
+-
+-    static constexpr unsigned int TRANSDUCER_EVENTS[]             = {CPU_VOLTAGE, CPU_TEMPERATURE};
+-    static constexpr unsigned int TRANSDUCER_EVENTS_FREQUENCIES[] = {          1,           1}; // in Hz
+-};
+-
+-__END_SYS
+-
+-#endif
+diff --git a/include/architecture/armv7/armv7_mmu.h b/include/architecture/armv7/armv7_mmu.h
+index d0628aa..74191d7 100644
+--- a/include/architecture/armv7/armv7_mmu.h
++++ b/include/architecture/armv7/armv7_mmu.h
+@@ -20,7 +20,6 @@ private:
+     static const unsigned int RAM_BASE = Memory_Map::RAM_BASE;
+     static const unsigned int APP_LOW = Memory_Map::APP_LOW;
+     static const unsigned int PHY_MEM = Memory_Map::PHY_MEM;
+-    static const unsigned int SYS     = Memory_Map::SYS;
+ 
+ public:
+     // Page Flags
+@@ -32,7 +31,7 @@ public:
+             XN   = 1 << 0,  // not executable
+             PTE  = 1 << 1,  // sets entry as Small Page == Page Table Entry
+             // Access Permission bits, assuming SCTLR.AFE = 0
+-            AP0  = 1 << 4,
++            AP0  = 1 << 4,  
+             AP1  = 1 << 5,
+             AP2  = 1 << 9,
+             RW   = AP0,     // Read Write SYS
+@@ -146,61 +145,7 @@ public:
+     };
+ 
+     // Page Directory
+-    class Page_Directory {
+-    public:
+-        Page_Directory() {}
+-
+-        PD_Entry & operator[](unsigned int i) { return _entry[i]; }
+-        Page_Directory & log() { return *static_cast<Page_Directory *>(phy2log(this)); }
+-
+-        void map(int from, int to, Page_Flags flags, Color color) {
+-            Phy_Addr * addr = alloc(to - from, color);
+-            if(addr)
+-                remap(addr, from, to, flags);
+-            else
+-                for( ; from < to; from++) {
+-                    Log_Addr * pde = phy2log(&_entry[from]);
+-                    *pde = phy2pde(alloc(1, color));
+-                }
+-        }
+-
+-        void map_contiguous(int from, int to, Page_Flags flags, Color color) {
+-            remap(alloc(to - from, color), from, to, flags);
+-        }
+-
+-        void remap(Phy_Addr addr, int from, int to, Page_Flags flags) {
+-            addr = align_page(addr);
+-            for( ; from < to; from++) {
+-                Log_Addr * pde = phy2log(&_entry[from]);
+-                *pde = phy2pde(addr);
+-                addr += sizeof(Page);
+-            }
+-        }
+-
+-        void unmap(int from, int to) {
+-            for( ; from < to; from++) {
+-                free(_entry[from]);
+-                Log_Addr * pde = phy2log(&_entry[from]);
+-                *pde = 0;
+-            }
+-        }
+-
+-        friend OStream & operator<<(OStream & os, Page_Directory & pd) {
+-            os << "{\n";
+-            int brk = 0;
+-            for(unsigned int i = 0; i < PD_ENTRIES; i++)
+-                if(pd[i]) {
+-                    os << "[" << i << "]=" << pd[i] << "  ";
+-                    if(!(++brk % 4))
+-                        os << "\n";
+-                }
+-            os << "\n}";
+-            return os;
+-        }
+-
+-    private:
+-        PD_Entry _entry[PD_ENTRIES]; // the Phy_Addr in each entry passed through phy2pde()
+-    };
++    typedef Page_Table Page_Directory;
+ 
+     // Chunk (for Segment)
+     class Chunk
+@@ -281,19 +226,8 @@ public:
+     class Directory
+     {
+     public:
+-        Directory() : _pd(calloc(7, WHITE)), _free(true) { // each pd has up to 4096 entries and must be aligned with 16KB, need 7 in worst case
+-            unsigned int addr = reinterpret_cast<unsigned int>(_pd);
+-            // Alinhamento para o próximo diretório caso não esteja alinhado
+-            // (Baseado no código do Gilson)
+-            if (addr & 0x3FFF) {
+-                addr = (addr & ~(0x3FFF)) + (0x3FFF + 1);
+-            }
+-            _pd = Phy_Addr(addr);
+-
+-            for(unsigned int i = directory(PHY_MEM); i < directory(APP_LOW); i++)
+-                (*_pd)[i] = (*_master)[i];
+-
+-            for(unsigned int i = directory(SYS); i < PD_ENTRIES; i++)
++        Directory() : _pd(reinterpret_cast<Page_Directory *>((calloc(4, WHITE) & ~(0x3fff)))), _free(true) { // each pd has up to 4096 entries and must be aligned with 16KB
++            for(unsigned int i = directory(PHY_MEM); i < PD_ENTRIES; i++)
+                 (*_pd)[i] = (*_master)[i];
+         }
+ 
+@@ -306,7 +240,6 @@ public:
+         void activate() const { CPU::pdp(pd()); }
+ 
+         Log_Addr attach(const Chunk & chunk, unsigned int from = directory(APP_LOW)) {
+-            flush_tlb();
+             for(unsigned int i = from; i < PD_ENTRIES; i++)
+                 if(attach(i, chunk.pt(), chunk.pts(), chunk.flags()))
+                     return i << DIRECTORY_SHIFT;
+@@ -314,7 +247,6 @@ public:
+         }
+ 
+         Log_Addr attach(const Chunk & chunk, Log_Addr addr) {
+-            flush_tlb();
+             unsigned int from = directory(addr);
+             if(attach(from, chunk.pt(), chunk.pts(), chunk.flags()))
+                 return from << DIRECTORY_SHIFT;
+@@ -322,7 +254,6 @@ public:
+         }
+ 
+         void detach(const Chunk & chunk) {
+-            flush_tlb();
+             for(unsigned int i = 0; i < PD_ENTRIES; i++) {
+                 if(indexes(pte2phy((*_pd)[i])) == indexes(chunk.pt())) {
+                     detach(i, chunk.pt(), chunk.pts());
+@@ -333,7 +264,6 @@ public:
+         }
+ 
+         void detach(const Chunk & chunk, Log_Addr addr) {
+-            flush_tlb();
+             unsigned int from = directory(addr);
+             if(indexes(pte2phy((*_pd)[from])) != indexes(chunk.pt())) {
+                 db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ",addr=" << addr << ") failed!" << endl;
+@@ -490,18 +420,7 @@ public:
+     static PD_Entry phy2pde(Phy_Addr frame) { return (frame) | Page_Flags::PD_FLAGS; }
+     static Phy_Addr pde2phy(PD_Entry entry) { return (entry & ~Page_Flags::PD_MASK); }
+ 
+-    static void flush_tlb() {
+-        CPU::isb();
+-        CPU::dsb();
+-        //ASM("MCR p15, 0, r0, c8, c5, 0;");
+-        // ITLBIALL, Instruction TLB invalidate all. Operation ignores Rt value.");
+-
+-        ASM("mcr   p15, 0, r0, c8, c7, 0");// @ flush I,D TLBs
+-        /*
+-        ASM("mcr     p15, 0, r0, c7, c5, 4 \n" //  @ ISB
+-            "mcrne   p15, 0, r0, c8, c7, 0");// @ flush I,D TLBs
+-        */
+-    }
++    static void flush_tlb() {} //TODO
+     static void flush_tlb(Log_Addr addr) {} //TODO
+ 
+     static Log_Addr phy2log(Phy_Addr phy) { return Log_Addr((RAM_BASE == PHY_MEM) ? phy : (RAM_BASE > PHY_MEM) ? phy - (RAM_BASE - PHY_MEM) : phy + (PHY_MEM - RAM_BASE)); }
+diff --git a/include/machine/cortex/raspberry_pi3/raspberry_pi3_traits.h b/include/machine/cortex/raspberry_pi3/raspberry_pi3_traits.h
+index 19b49d0..0141d93 100644
+--- a/include/machine/cortex/raspberry_pi3/raspberry_pi3_traits.h
++++ b/include/machine/cortex/raspberry_pi3/raspberry_pi3_traits.h
+@@ -49,8 +49,7 @@ public:
+     static const unsigned int INIT              = (Traits<Build>::MODE == Traits<Build>::LIBRARY) ? NOT_USED : 0x00080000;
+     static const unsigned int PHY_MEM           = 0x00000000;   // 0 (max 1792 MB)
+     static const unsigned int IO                = 0x70000000;   // 2 GB - 256 MB (max 247 MB)
+-    //static const unsigned int SYS               = 0xff700000;   // 4 GB - 9 MB
+-    static const unsigned int SYS               = 0xfe700000;   // 4 GB - 9 MB
++    static const unsigned int SYS               = 0xff700000;   // 4 GB - 9 MB
+ 
+     // Default Sizes and Quantities
+     static const unsigned int STACK_SIZE        = 16 * 1024;
+diff --git a/include/memory.h b/include/memory.h
+index c81dc53..63899b1 100644
+--- a/include/memory.h
++++ b/include/memory.h
+@@ -7,15 +7,13 @@
+ 
+ __BEGIN_SYS
+ 
+-class Address_Space: MMU::Directory
++class Address_Space: private MMU::Directory
+ {
+     friend class Init_System;   // for Address_Space(pd)
+     friend class Thread;        // for Address_Space(pd)
+     friend class Scratchpad;    // for Address_Space(pd)
+-    friend class Task;
+ 
+-//private:
+-public:
++private:
+     using MMU::Directory::activate;
+ 
+ public:
+diff --git a/include/process.h b/include/process.h
+index b7641f8..e7beb71 100644
+--- a/include/process.h
++++ b/include/process.h
+@@ -27,9 +27,6 @@ protected:
+     static const bool preemptive = Traits<Thread>::Criterion::preemptive;
+     static const bool reboot = Traits<System>::reboot;
+ 
+-    static const bool multitask = Traits<System>::multitask;
+-
+-
+     static const unsigned int QUANTUM = Traits<Thread>::QUANTUM;
+     static const unsigned int STACK_SIZE = Traits<Application>::STACK_SIZE;
+ 
+@@ -61,13 +58,12 @@ public:
+ 
+     // Thread Configuration
+     struct Configuration {
+-        Configuration(const State & s = READY, const Criterion & c = NORMAL, unsigned int ss = STACK_SIZE, Task * t = 0)
+-        : state(s), criterion(c), stack_size(ss), task(t) {}
++        Configuration(const State & s = READY, const Criterion & c = NORMAL, unsigned int ss = STACK_SIZE)
++        : state(s), criterion(c), stack_size(ss) {}
+ 
+         State state;
+         Criterion criterion;
+         unsigned int stack_size;
+-        Task * task;
+     };
+ 
+ 
+@@ -84,8 +80,6 @@ public:
+     const volatile Criterion & priority() const { return _link.rank(); }
+     void priority(const Criterion & p);
+ 
+-    Task * task() const { return _task; }
+-
+     int join();
+     void pass();
+     void suspend();
+@@ -95,7 +89,6 @@ public:
+     static void yield();
+     static void exit(int status = 0);
+ 
+-
+ protected:
+     void constructor_prologue(unsigned int stack_size);
+     void constructor_epilogue(Log_Addr entry, unsigned int stack_size);
+@@ -124,7 +117,6 @@ private:
+     static void init();
+ 
+ protected:
+-    Task * _task;
+     char * _stack;
+     Context * volatile _context;
+     volatile State _state;
+@@ -137,93 +129,24 @@ protected:
+     static Scheduler<Thread> _scheduler;
+ };
+ 
+-// Task 
+-class Task
+-{
+-    friend class Thread;        // for insert()
+-
+-private:
+-    typedef CPU::Log_Addr Log_Addr;
+-    typedef CPU::Phy_Addr Phy_Addr;
+-    typedef CPU::Context Context;
+-
+-protected:
+-    // This constructor is only used by Thread::init()
+-    template<typename ... Tn>
+-    Task(Address_Space * as, Segment * cs, Segment * ds, int (* entry)(Tn ...), const Log_Addr & code, const Log_Addr & data, Tn ... an)
+-    : _as(as), _cs(cs), _ds(ds), _entry(entry), _code(code), _data(data) {
+-        db<Task, Init>(TRC) << "Task(as=" << _as << ",cs=" << _cs << ",ds=" << _ds << ",entry=" << _entry << ",code=" << _code << ",data=" << _data << ") => " << this << endl;
+-        lock();
+-        _id = _task_count++;
+-        unlock();
+-        _current = this;
+-        activate();
+-        _main = new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN, Traits<Application>::STACK_SIZE, this), entry, an ...);
+-    }
+-
+-public:
+-    template<typename ... Tn>
+-    Task(Segment * cs, Segment * ds, int (* entry)(Tn ...), const Log_Addr & code, const Log_Addr & data, Tn ... an)
+-    : _as (new (SYSTEM) Address_Space), _cs(cs), _ds(ds), _entry(entry), _code(_as->attach(_cs, code)), _data(_as->attach(_ds, data)) {
+-        db<Task>(TRC) << "Task(as=" << _as << ",cs=" << _cs << ",ds=" << _ds << ",entry=" << _entry << ",code=" << _code << ",data=" << _data << ") => " << this << endl;
+-        lock();
+-        _id = _task_count++;
+-        unlock();
+-        _main = new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::MAIN, Traits<Application>::STACK_SIZE, this), entry, an ...);
+-    }
+-    ~Task();
+-
+-    Address_Space * address_space() const { return _as; }
+ 
+-    Segment * code_segment() const { return _cs; }
+-    Segment * data_segment() const { return _ds; }
+-
+-    Log_Addr code() const { return _code; }
+-    Log_Addr data() const { return _data; }
+-
+-    Thread * main() const { return _main; }
+-
+-    static Task * volatile self() { return current(); }
+-    Log_Addr entry() { return _entry; }
+-
+-    unsigned int id() {return _id;}
+-
+-    void activate_context() {
+-        activate();
+-        MMU::flush_tlb();
+-        lock();
+-        _current = this;
+-        unlock();
+-    }
+-
+-private:
+-    void activate() const { _as->activate(); }
+-
+-    void insert(Thread * t) { _threads.insert(new (SYSTEM) Thread::Queue::Element(t)); }
+-    void remove(Thread * t) { Thread::Queue::Element * el = _threads.remove(t); if(el) delete el; }
+-
+-    static Task * volatile current() { return _current; }
+-    static void current(Task * t) { _current = t; }
+-
+-    static void lock() { CPU::int_disable(); }
+-    static void unlock() { CPU::int_enable(); }
+-
+-private:
+-    unsigned int _id;
+-    Address_Space * _as;
+-    Segment * _cs;
+-    Segment * _ds;
+-    Log_Addr _entry;
+-    Log_Addr _code;
+-    Log_Addr _data;
+-    Thread * _main;
+-    Thread::Queue _threads;
+-
+-    static Task * volatile _current;
++template<typename ... Tn>
++inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
++: _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
++{
++    constructor_prologue(STACK_SIZE);
++    _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
++    constructor_epilogue(entry, STACK_SIZE);
++}
+ 
+-protected:
+-    static volatile unsigned int _task_count;
+-};
++template<typename ... Tn>
++inline Thread::Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... an)
++: _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
++{
++    constructor_prologue(conf.stack_size);
++    _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);
++    constructor_epilogue(entry, conf.stack_size);
++}
+ 
+ 
+ // A Java-like Active Object
+@@ -255,31 +178,6 @@ private:
+     Thread * _handler;
+ };
+ 
+-template<typename ... Tn>
+-inline Thread::Thread(int (* entry)(Tn ...), Tn ... an)
+-:_task(Task::self()), _state(READY), _waiting(0), _joining(0), _link(this, NORMAL)
+-{
+-    constructor_prologue(STACK_SIZE);
+-    _context = CPU::init_stack(0, _stack + STACK_SIZE, &__exit, entry, an ...);
+-    constructor_epilogue(entry, STACK_SIZE);
+-
+-    _task->insert(this);
+-}
+-
+-template<typename ... Tn>
+-inline Thread::Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... an)
+-:_task(conf.task ? conf.task : Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
+-{
+-    constructor_prologue(conf.stack_size);
+-    _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);
+-    constructor_epilogue(entry, conf.stack_size);
+-
+-    // Not add Idle in task's threads list
+-   if (conf.criterion != Thread::IDLE) {
+-       _task->insert(this);
+-   }
+-}
+-
+ __END_SYS
+ 
+ #endif
+diff --git a/include/utility/fork.h b/include/utility/fork.h
+deleted file mode 100644
+index b97ce40..0000000
+--- a/include/utility/fork.h
++++ /dev/null
+@@ -1,46 +0,0 @@
+-// EPOS Fork implementation
+-
+-#ifndef __fork_h
+-#define __fork_h
+-
+-#include <process.h>
+-#include <architecture.h>
+-
+-__BEGIN_UTIL
+-
+-static unsigned int fork(int(* main)()) {
+-    //unsigned long lr = CPU::lr();
+-    Task * c_task = Task::self();
+-
+-    // Code
+-    Segment* cs;
+-    unsigned int cs_size = c_task->code_segment()->size();
+-    cs = new (SYSTEM) Segment(cs_size, Segment::Flags::SYS);
+-
+-    CPU::int_disable();
+-    CPU::Log_Addr tmp = c_task->address_space()->attach(cs);
+-    memcpy(tmp, c_task->code(), cs_size);
+-    c_task->address_space()->detach(cs);
+-    CPU::int_enable();
+-
+-    // Data
+-    Segment* ds;
+-    unsigned int ds_size = c_task->data_segment()->size();
+-    ds = new (SYSTEM) Segment(ds_size, Segment::Flags::SYS);
+-
+-    CPU::int_disable();
+-    CPU::Log_Addr tmp_ds = c_task->address_space()->attach(ds);
+-    memcpy(tmp_ds, c_task->data(), ds_size);
+-    c_task->address_space()->detach(ds);
+-    CPU::int_enable();
+-
+-    typedef int (Main)();
+-    main = reinterpret_cast<Main *>(main);
+-    new (SYSTEM) Task(cs, ds, main, c_task->code(), c_task->data());
+-
+-    return Task::self()->id();
+-}
+-
+-__END_UTIL
+-
+-#endif
+diff --git a/makedefs b/makedefs
+index cc1e689..96f7a02 100644
+--- a/makedefs
++++ b/makedefs
+@@ -137,12 +137,11 @@ cortex_IMG_SUFFIX	:= .bin
+ endif
+ 
+ ifeq ($(MMOD),raspberry_pi3)
+-#cortex_CC_FLAGS		:= -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=vfp
+-cortex_CC_FLAGS		:= -mcpu=cortex-a53 -mfloat-abi=softfp -mfpu=vfp
++cortex_CC_FLAGS		:= -mcpu=cortex-a53 -mfloat-abi=hard -mfpu=vfp
+ cortex_AS_FLAGS		:= -mcpu=cortex-a53
+ cortex_LD_FLAGS		:=
+ cortex_EMULATOR		= qemu-system-aarch64 -M raspi2 -cpu cortex-a53 -smp 4 -m 1G -serial null -serial mon:stdio -nographic -no-reboot -device loader,file=loader.img,addr=$(IMAGE_ADDR),force-raw=on -kernel 
+-cortex_DEBUGGER		:= arm-none-eabi-gdb
++cortex_DEBUGGER		:= gdb
+ cortex_FLASHER		= $(TLS)/eposflash/eposflash-$(MMOD) -d /dev/ttyACM0 -f
+ cortex_MAGIC		:= --omagic
+ cortex_CODE_NAME	:= .init
+diff --git a/src/api/task.cc b/src/api/task.cc
+deleted file mode 100644
+index a4717b3..0000000
+--- a/src/api/task.cc
++++ /dev/null
+@@ -1,27 +0,0 @@
+-// EPOS Task Implementation
+-
+-#include <process.h>
+-
+-__BEGIN_SYS
+-
+-// Class attributes
+-volatile unsigned int Task::_task_count;
+-Task* volatile Task::_current;
+-
+-// Methods
+-Task::~Task()
+-{
+-    db<Task>(TRC) << "~Task(this=" << this << ")" << endl;
+-
+-    while (!_threads.empty()){
+-        delete _threads.remove()->object();
+-    }
+-
+-    lock();
+-    _task_count--;
+-    unlock();
+-
+-    delete _as;
+-}
+-
+-__END_SYS
+diff --git a/src/api/thread.cc b/src/api/thread.cc
+index 03edfd4..191597d 100644
+--- a/src/api/thread.cc
++++ b/src/api/thread.cc
+@@ -88,8 +88,6 @@ Thread::~Thread()
+     if(_joining)
+         _joining->resume();
+ 
+-    _task->remove(this);
+-
+     unlock();
+ 
+     delete _stack;
+@@ -344,10 +342,6 @@ void Thread::dispatch(Thread * prev, Thread * next, bool charge)
+         }
+         db<Thread>(INF) << "Thread::dispatch:next={" << next << ",ctx=" << *next->_context << "}" << endl;
+ 
+-        if (prev->_task != next->_task) {
+-            next->_task->activate_context();
+-        }
+-
+         // The non-volatile pointer to volatile pointer to a non-volatile context is correct
+         // and necessary because of context switches, but here, we are locked() and
+         // passing the volatile to switch_constext forces it to push prev onto the stack,
+diff --git a/src/api/thread_init.cc b/src/api/thread_init.cc
+index 0ca722f..53ade54 100644
+--- a/src/api/thread_init.cc
++++ b/src/api/thread_init.cc
+@@ -27,17 +27,7 @@ void Thread::init()
+ 
+     Criterion::init();
+ 
+-    if (Traits<System>::multitask) {
+-        Address_Space* as = new (SYSTEM) Address_Space(MMU::current());
+-        Segment* cs = new (SYSTEM) Segment(Log_Addr(si->lm.app_code), si->lm.app_code_size, Segment::Flags::APPC);
+-        Segment* ds = new (SYSTEM) Segment(Log_Addr(si->lm.app_data), si->lm.app_data_size, Segment::Flags::APPD);
+-        Log_Addr code = si->lm.app_code;
+-        Log_Addr data = si->lm.app_data;
+-        new (SYSTEM) Task(as, cs, ds, main, code, data);
+-    }
+-    else {
+-        new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), reinterpret_cast<int (*)()>(main));
+-    }
++    new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), main);
+ 
+     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
+     new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), &Thread::idle);
+diff --git a/src/setup/setup_raspberry_pi3.cc b/src/setup/setup_raspberry_pi3.cc
+index 6fa61bd..0eb9e80 100644
+--- a/src/setup/setup_raspberry_pi3.cc
++++ b/src/setup/setup_raspberry_pi3.cc
+@@ -557,8 +557,8 @@ void Setup::setup_app_pt()
+     // APPLICATION data (contains stack, heap and extra)
+     configure_page_table_descriptors(reinterpret_cast<PT_Entry *>(&app_data_pt[MMU::page(si->lm.app_data)]), si->pmm.app_data, MMU::pages(si->lm.app_data_size), MMU::page_tables(MMU::pages(si->lm.app_data_size)), Flags::APP);
+ 
+-    db<Setup>(TRC) << "APPC_PT=" << *reinterpret_cast<Page_Table *>(app_code_pt) << endl;
+-    db<Setup>(TRC) << "APPD_PT=" << *reinterpret_cast<Page_Table *>(app_data_pt) << endl;
++    db<Setup>(INF) << "APPC_PT=" << *reinterpret_cast<Page_Table *>(app_code_pt) << endl;
++    db<Setup>(INF) << "APPD_PT=" << *reinterpret_cast<Page_Table *>(app_data_pt) << endl;
+ }
+ 
+ void Setup::setup_sys_pd()

@@ -17,16 +17,6 @@ void CPU::init()
             db<Init, MMU>(WRN) << "MMU is disabled!" << endl;
     }
 
-//#ifdef __cortex_a__
-//    if(Traits<FPU>::enabled)
-//        CPU::fpu_enable();
-//#endif
-//
-//#ifdef __PMU_H
-//    if(Traits<PMU>::enabled)
-//        PMU::init();
-//#endif
-//
 #ifdef __TSC_H
     if(Traits<TSC>::enabled)
         TSC::init();
