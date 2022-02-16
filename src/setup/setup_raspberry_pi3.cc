@@ -1050,140 +1050,216 @@ void _vector_table()
     // Therefore, each exception level maps the four exception type handlers aligned by 128 bytes (enough room to write simple handlers).
 
     // Our strategy is to forward all interrupts to _int_entry via
-    ASM("// Current EL with SP0                                                 \t\n\
+    ASM("                                                                       \t\n\
                         .balign 128                                             \t\n\
         .sync_curr_sp0: str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_sync_curr_sp0                               \t\n\
+                        mov x0, #0                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0,  [sp], #8                                       \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .irq_curr_sp0:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_irq_curr_sp0                                \t\n\
+                        mov x0, #0                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0,  [sp], #8                                       \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .fiq_curr_sp0:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_fiq_curr_sp0                                \t\n\
+                        mov x0, #0                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0,  [sp], #8                                       \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .error_curr_sp0:str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_error_curr_sp0                              \t\n\
+                        mov x0, #0                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                         ldr x0,  [sp], #8                                      \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
-        // Current EL with SPx                                                  \t\n\
                         .balign 128                                             \t\n\
         .sync_curr_spx: str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_sync_curr_spx                               \t\n\
+                        mov x0, #4                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .irq_curr_spx:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_irq_curr_spx                                \t\n\
+                        mov x0, #4                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .fiq_curr_spx:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_fiq_curr_spx                                \t\n\
+                        mov x0, #4                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .error_curr_spx:str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0,  [sp,#-8]!                                      \t\n\
+                        ldr x29, vj_error_curr_spx                              \t\n\
+                        mov x0, #4                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
         // Lower EL using AArch64                                               \t\n\
                         .balign 128                                             \t\n\
         .sync_lower64:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
-                        blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        str x28, [sp,#-8]!                                      \t\n\
+                        mrs x28, CurrentEL                                      \t\n\
+                        and x28, x28, #12                                       \t\n\
+                        lsr x28, x28, #2                                        \t\n\
+                                                                                \t\n\
+                        cmp x28, #2                                             \t\n\
+                        beq .1                                                  \t\n\
+                        ldr x29, vj_sync_lower64                                \t\n\
+                        b .2                                                    \t\n\
+                    .1:                                                         \t\n\
+                        dsb   ishst                                             \t\n\
+                        tlbi  alle1                                             \t\n\
+                        dsb   ish                                               \t\n\
+                        isb                                                     \t\n\
+                    .2:                                                         \t\n\
+                        ldr x28, [sp], #8                                       \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .irq_lower64:   str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_irq_lower64                                 \t\n\
+                        mov x0, #9                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .fiq_lower64:   str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_fiq_lower64                                 \t\n\
+                        mov x0, #9                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .error_lower64: str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_serr_lower64                                \t\n\
+                        mov x0, #9                                              \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         // Lower EL using AArch32                               \t\n\
                         .balign 128                                             \t\n\
         .sync_lower32:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_sync_lower32                                \t\n\
+                        mov x0, #12                                             \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .irq_lower32:   str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_irq_lower32                                 \t\n\
+                        mov x0, #12                                             \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
         .fiq_lower32:   str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_fiq_lower32                                 \t\n\
+                        mov x0, #12                                             \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
+                                                                                \t\n\
         .error_lower32: str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
-                        ldr x29, .ic_entry                                      \t\n\
+                        str x0, [sp, #-8]!                                      \t\n\
+                        ldr x29, vj_serr_lower32                                \t\n\
+                        mov x0, #12                                             \t\n\
                         blr x29                                                 \t\n\
-                        ldr x30, [sp], #8                                       \t\n\
+                        ldr x0, [sp], #8                                        \t\n\
+                        ldp  x29, x30, [sp], #16                                \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
-        .ic_entry: .dword 0x0                                                   \t");
+        .global _vector_jat                                                     \t\n\
+        _vector_jat:                                                            \t\n\
+        vj_sync_curr_sp0:       .dword 0x0                                      \t\n\
+        vj_irq_curr_sp0:        .dword 0x0                                      \t\n\
+        vj_fiq_curr_sp0:        .dword 0x0                                      \t\n\
+        vj_error_curr_sp0:      .dword 0x0                                      \t\n\
+        vj_sync_curr_spx:       .dword 0x0                                      \t\n\
+        vj_irq_curr_spx:        .dword 0x0                                      \t\n\
+        vj_fiq_curr_spx:        .dword 0x0                                      \t\n\
+        vj_error_curr_spx:      .dword 0x0                                      \t\n\
+        vj_sync_lower64:        .dword 0x0                                      \t\n\
+        vj_irq_lower64:         .dword 0x0                                      \t\n\
+        vj_fiq_lower64:         .dword 0x0                                      \t\n\
+        vj_serr_lower64:        .dword 0x0                                      \t\n\
+        vj_sync_lower32:        .dword 0x0                                      \t\n\
+        vj_irq_lower32:         .dword 0x0                                      \t\n\
+        vj_fiq_lower32:         .dword 0x0                                      \t\n\
+        vj_serr_lower32:        .dword 0x0                                      \t");
 }
 
 void _reset()

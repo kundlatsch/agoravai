@@ -270,6 +270,7 @@ template<unsigned int ENTRIES>
         void activate() const { ARMv8_MMU::pd(_pd); }
 
         Log_Addr attach(const Chunk & chunk, unsigned int from = directory(APP_LOW)) {
+            flush_tlb();
             for(unsigned int i = from; i < directory(SYS); i++)
                 if(attach(i, chunk.pt(), chunk.pts(), chunk.flags()))
                     return i << DIRECTORY_SHIFT;
@@ -277,6 +278,7 @@ template<unsigned int ENTRIES>
         }
 
         Log_Addr attach(const Chunk & chunk, Log_Addr addr) {
+            flush_tlb();
             unsigned int from = directory(addr);
             if(attach(from, chunk.pt(), chunk.pts(), chunk.flags()))
                 return from << DIRECTORY_SHIFT;
@@ -284,6 +286,7 @@ template<unsigned int ENTRIES>
         }
 
         void detach(const Chunk & chunk) {
+            flush_tlb();
             for(unsigned int i = 0; i < PD_ENTRIES; i++) {
                 if(indexes(pte2phy((*_pd)[i])) == indexes(chunk.pt())) {
                     detach(i, chunk.pt(), chunk.pts());
@@ -294,6 +297,7 @@ template<unsigned int ENTRIES>
         }
 
         void detach(const Chunk & chunk, Log_Addr addr) {
+            flush_tlb();
             unsigned int from = directory(addr);
             if(indexes(pte2phy((*_pd)[from])) != indexes(chunk.pt())) {
                 db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ",addr=" << addr << ") failed!" << endl;
@@ -311,6 +315,7 @@ template<unsigned int ENTRIES>
 
     private:
         bool attach(unsigned int from, const Page_Table * pt, unsigned int n, Page_Flags flags) {
+            flush_tlb();
             for(unsigned int i = from; i < from + n; i++)
                 if(_pd->log()[i])
                     return false;
@@ -320,7 +325,9 @@ template<unsigned int ENTRIES>
         }
 
         void detach(unsigned int from, const Page_Table * pt, unsigned int n) {
+            flush_tlb();
             for(unsigned int i = from; i < from + n; i++) {
+                flush_tlb();
                 _pd->log()[i] = 0;
                 // flush_tlb(i << DIRECTORY_SHIFT);
             }
@@ -471,10 +478,10 @@ public:
     }
 
     static Phy_Addr pd() { return CPU::pd(); }
-    static void pd(Phy_Addr pd) { CPU::pd(pd); /*CPU::flush_tlb();*/ CPU::isb(); CPU::dsb(); }
+    static void pd(Phy_Addr pd) { CPU::pd(pd); CPU::flush_tlb(); CPU::isb(); CPU::dsb(); }
 
-    static void flush_tlb() { /*CPU::flush_tlb();*/ }
-    static void flush_tlb(Log_Addr addr) { /*CPU::flush_tlb(directory_bits(addr));*/ } // only bits from 31 to 12, all ASIDs
+    static void flush_tlb() { CPU::flush_tlb(); }
+    static void flush_tlb(Log_Addr addr) { CPU::flush_tlb(directory_bits(addr)); } // only bits from 31 to 12, all ASIDs
 
     static void init();
 

@@ -145,6 +145,39 @@ public:
     FCFS(int p = NORMAL, Tn & ... an);
 };
 
+
+class Real_Time_Scheduler: public Priority
+{
+protected:
+    Real_Time_Scheduler(int p): Priority(p), _deadline(0), _period(0), _capacity(0) {}
+    Real_Time_Scheduler(int i, const Microsecond & d, const Microsecond & p, const Microsecond & c)
+    : Priority(i), _deadline(d), _period(p), _capacity(c) {}
+
+public:
+    const Microsecond period() { return _period; }
+    void period(const Microsecond & p) { _period = p; }
+
+public:
+    Microsecond _deadline;
+    Microsecond _period;
+    Microsecond _capacity;
+};
+
+// Deadline Monotonic
+class DM: public Real_Time_Scheduler
+{
+
+public:
+    static const bool timed = false;
+    static const bool dynamic = false;
+    static const bool preemptive = true;
+
+public:
+    DM(int p = APERIODIC): Real_Time_Scheduler(p) {}
+    DM(const Microsecond & d, const Microsecond & p = SAME, const Microsecond & c = UNKNOWN, unsigned int cpu = ANY)
+    : Real_Time_Scheduler(d, d, p, c) {}
+};
+
 __END_SYS
 
 #endif

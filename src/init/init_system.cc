@@ -32,6 +32,20 @@ public:
             System::_heap = new (&System::_preheap[0]) Heap(MMU::alloc(MMU::pages(HEAP_SIZE)), HEAP_SIZE);
         db<Init>(INF) << "done!" << endl;
 
+        ///////////////////////////////
+
+        // If the trait sharedmemory is true, a segment with the same size of
+        // the system's heap will be allocated to be shared
+        db<Init>(INF) << "Initializing shared memory:" << endl;
+        if(Traits<System>::sharedmemory) {
+            Shared_Memory::_shared_heap_segment = new(&Shared_Memory::_preheap[0]) Segment(HEAP_SIZE, Segment::Flags::SHR);
+            Shared_Memory::_shared_heap = new(&Shared_Memory::_preheap[sizeof(Segment)]) Heap(Address_Space(MMU::current()).attach(Shared_Memory::_shared_heap_segment), Shared_Memory::_shared_heap_segment->size());
+        }
+        db<Init>(INF)<<"done!"<<endl;
+
+        ///////////////////////////////
+
+
         db<Init>(INF) << "Initializing the machine: " << endl;
         Machine::init();
         db<Init>(INF) << "done!" << endl;

@@ -349,7 +349,10 @@ public:
     static Reg  pd() { return ttbr0(); }
     static void pd(Reg r) {  ttbr0(r); }
 
-    static void flush_tlb();
+   static void flush_tlb() {
+       db<MMU>(TRC) << "CPU::flush_tlb() " << endl;
+       ASM("hvc #0                                   \t\n");
+   }
     static void flush_tlb(Reg r);
 
     static void flush_branch_predictors();
