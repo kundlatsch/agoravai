@@ -128,12 +128,7 @@ void IC::kill()
 extern "C" { void _dispatch(unsigned int) __attribute__ ((alias("_ZN4EPOS1S2IC8dispatchEj"))); }
 
 void IC::entry()
-{
-    // str: store register
-    // stp: store pair
-    // mrs: move the contents of a PSR to a general-purpose register
-    // ldr: load register
-    // ldp: load pair
+{    
     ASM("str        x30, [sp, # -8]!                                     \t\n\
          stp   x28, x29, [sp, #-16]!                                     \t\n\
          stp   x26, x27, [sp, #-16]!                                     \t\n\
@@ -150,9 +145,9 @@ void IC::entry()
          stp    x4,  x5, [sp, #-16]!                                     \t\n\
          stp    x2,  x3, [sp, #-16]!                                     \t\n\
          stp    x0,  x1, [sp, #-16]!                                     \t\n\
-         mrs x30, elr_el1                                                \t\n\
+         mrs x30, elr_el1                                               \t\n\
          str        x30, [sp, # -8]!                                     \t\n\
-         mrs x30, spsr_el1                                               \t\n\
+         mrs x30, spsr_el1                                              \t\n\
          str        x30, [sp, # -8]!                                     \t" : : : "cc");
 
     dispatch(int_id());
@@ -177,7 +172,7 @@ void IC::entry()
          ldp   x26, x27, [sp], #16                                       \t\n\
          ldp   x28, x29, [sp], #16                                       \t\n\
          ldr        x30, [sp], #8                                        \t" : : : "cc");
-}
+ }
 
 #endif    
 
