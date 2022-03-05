@@ -737,7 +737,8 @@ void Setup::enable_paging()
 #ifdef __arch_armv7__
 
     // MNG_DOMAIN for no page permission verification, CLI_DOMAIN otherwise
-    CPU::dacr((Traits<System>::multitask) ? CPU::CLI_DOMAIN : CPU::MNG_DOMAIN); 
+    // CPU::dacr((Traits<System>::multitask) ? CPU::CLI_DOMAIN : CPU::MNG_DOMAIN); 
+    CPU::dacr(CPU::MNG_DOMAIN);
 
     CPU::dsb();
     CPU::isb();

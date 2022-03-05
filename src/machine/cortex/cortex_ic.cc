@@ -1,5 +1,6 @@
 // EPOS ARM Cortex-A IC Mediator Implementation
 
+#include <architecture/cpu.h>
 #include <machine/machine.h>
 #include <machine/ic.h>
 #include <machine/timer.h>
@@ -97,6 +98,7 @@ void IC::data_abort()
 {
     CPU::svc_enter(CPU::MODE_ABORT, false); // enter SVC to capture LR (the faulting address) in r1
     db<IC, Machine>(TRC) << "IC::data_abort(addr=" << CPU::r1() << ")" << endl;
+    CPU::syscalled();
     CPU::svc_stay();  // undo the context saving of svc_enter(), but do not leave SVC
     kill();
 }

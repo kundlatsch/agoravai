@@ -14,7 +14,7 @@ class Address_Space: private MMU::Directory
     friend class Scratchpad;    // for Address_Space(pd)
     friend class Task;
 
-private:
+public:
     using MMU::Directory::activate;
 
 public:

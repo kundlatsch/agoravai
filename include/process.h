@@ -122,6 +122,7 @@ private:
 protected:
     char * _stack;
     Task * _task;
+    Segment  * _ustack;
     Context * volatile _context;
     volatile State _state;
     Queue * _waiting;
@@ -266,13 +267,20 @@ inline Thread::Thread(const Configuration & conf, int (* entry)(Tn ...), Tn ... 
 :_task(conf.task ? conf.task : Task::self()), _state(conf.state), _waiting(0), _joining(0), _link(this, conf.criterion)
 {
     constructor_prologue(conf.stack_size);
-    _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);
-    constructor_epilogue(entry, conf.stack_size);
 
-    // Not add Idle in task's threads list
-   if (conf.criterion != Thread::IDLE) {
-       _task->insert(this);
-   }
+    if (conf.criterion == Thread::IDLE) {
+        _context = CPU::init_stack(0, _stack + conf.stack_size, &__exit, entry, an ...);
+    } else {
+        _ustack = new (SYSTEM) Segment(Traits<Machine>::STACK_SIZE, Segment::Flags::APP);
+        CPU::Log_Addr usp = _task->address_space()->attach(_ustack);
+        db<Thread>(TRC) << "UStack attached at vaddr=" << usp << endl;
+        _context = CPU::init_user_stack(usp + Traits<Machine>::STACK_SIZE, _stack + Traits<Machine>::STACK_SIZE, &__exit, entry, an ...);
+        db<Thread>(TRC) << "Context attached at vaddr=" << hex << _context << endl;
+    }
+    constructor_epilogue(entry, conf.stack_size);
+    if (conf.criterion != Thread::IDLE) {
+        _task->insert(this);
+    }
 }
 
 __END_SYS
