@@ -436,7 +436,8 @@ public:
         Context() {}
         Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_SVC : FLAG_SVC)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
             if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
-                _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12;
+                _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15;
+                _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19; _x20 = 20; _x21 = 21; _x22 = 22; _x23 = 23; _x24 = 24; _x25 = 25; _x26 = 26; _x27 = 27; _x28 = 28; _x29 = 29;
             }
         }
 
@@ -444,23 +445,40 @@ public:
         void load() const volatile;
 
         public:
-            Reg32 _usp;
-            Reg32 _flags;
-            Reg32 _x0;
-            Reg32 _x1;
-            Reg32 _x2;
-            Reg32 _x3;
-            Reg32 _x4;
-            Reg32 _x5;
-            Reg32 _x6;
-            Reg32 _x7;
-            Reg32 _x8;
-            Reg32 _x9;
-            Reg32 _x10;
-            Reg32 _x11;
-            Reg32 _x12;
-            Reg32 _lr;
-            Reg32 _pc;
+            Reg64 _usp;
+            Reg64 _flags;
+            Reg64 _x0;
+            Reg64 _x1;
+            Reg64 _x2;
+            Reg64 _x3;
+            Reg64 _x4;
+            Reg64 _x5;
+            Reg64 _x6;
+            Reg64 _x7;
+            Reg64 _x8;
+            Reg64 _x9;
+            Reg64 _x10;
+            Reg64 _x11;
+            Reg64 _x12;
+            Reg64 _x13;
+            Reg64 _x14;
+            Reg64 _x15;
+            Reg64 _x16;
+            Reg64 _x17; 
+            Reg64 _x18;
+            Reg64 _x19;
+            Reg64 _x20;
+            Reg64 _x21;
+            Reg64 _x22;
+            Reg64 _x23;
+            Reg64 _x24;
+            Reg64 _x25;
+            Reg64 _x26;
+            Reg64 _x27;
+            Reg64 _x28;
+            Reg64 _x29;
+            Reg64 _lr;
+            Reg64 _pc;
     };
 
 public:

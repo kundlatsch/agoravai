@@ -20,7 +20,7 @@ class Agent: public Message
 public:
     static void _exec(){
         Agent * agt;
-        ASM("mov %0, r0  " : "=r"(agt) :);
+        ASM("mov %0, x0  " : "=r"(agt) :);
         agt->exec();
     }
     void exec() {
@@ -85,7 +85,7 @@ private:
                 int (* entry)();
                 get_params(entry);
                 Thread * t = new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::NORMAL), entry);
-                result(reinterpret_cast<int>(t));
+                result(reinterpret_cast<long>(t));
             }   break;
             case Message::THREAD_CREATE_CONFIG: {
                 int (* entry)();
@@ -102,7 +102,7 @@ private:
             case Message::THREAD_TASK: {
                 Thread * t = reinterpret_cast<Thread *>(id());
                 Task * task = t->task();
-                result(reinterpret_cast<int>(task));
+                result(reinterpret_cast<long>(task));
             }   break;
             case Message::THREAD_JOIN: {
                 Thread * t = reinterpret_cast<Thread *>(id());
@@ -123,7 +123,7 @@ private:
             }   break;
             case Message::THREAD_SELF: {
                 Thread * t = Thread::self();
-                result(reinterpret_cast<int>(t));
+                result(reinterpret_cast<long>(t));
                 break;
             }
             case Message::THREAD_YIELD: {
@@ -150,22 +150,22 @@ private:
                 Address_Space::Log_Addr data; 
                 get_params(cs, ds, entry, code, data);
                 Task * t = new (SYSTEM) Task(cs, ds, entry, code, data);
-                result(reinterpret_cast<int>(t));
+                result(reinterpret_cast<long>(t));
             }   break;
             case Message::TASK_ADDRESS_SPACE: {
                 Task * t = reinterpret_cast<Task *>(id());
                 Address_Space * a = t->address_space();
-                result(reinterpret_cast<int>(a));
+                result(reinterpret_cast<long>(a));
             }   break;
             case Message::TASK_CODE_SEGMENT: {
                 Task * t = reinterpret_cast<Task *>(id());
                 Segment * s = t->code_segment();
-                result(reinterpret_cast<int>(s));
+                result(reinterpret_cast<long>(s));
             }   break;
             case Message::TASK_DATA_SEGMENT: {
                 Task * t = reinterpret_cast<Task *>(id());
                 Segment * s = t->data_segment();
-                result(reinterpret_cast<int>(s));
+                result(reinterpret_cast<long>(s));
             }   break;
             case Message::TASK_CODE: {
                 Task * t = reinterpret_cast<Task *>(id());
@@ -180,7 +180,7 @@ private:
             case Message::TASK_MAIN: {
                 Task * t = reinterpret_cast<Task *>(id());
                 Thread * m = t->main();
-                result(reinterpret_cast<int>(m));
+                result(reinterpret_cast<long>(m));
             }   break;
             case Message::TASK_ID: {
                 Task * t = reinterpret_cast<Task *>(id());
@@ -197,13 +197,13 @@ private:
         switch(method()) {
             case Message::ADDRESS_SPACE_CREATE: {
                 Address_Space * a = new (SYSTEM) Address_Space();
-                result(reinterpret_cast<int>(a));
+                result(reinterpret_cast<long>(a));
             }   break;
             case Message::ADDRESS_SPACE_CREATE_PD: {
                 MMU::Page_Directory * pd;
                 get_params(pd);
                 Address_Space * a = new (SYSTEM) Address_Space(pd);
-                result(reinterpret_cast<int>(a));
+                result(reinterpret_cast<long>(a));
             }   break;
             case Message::ADDRESS_SPACE_ATTACH1: {
                 Segment * seg;
@@ -249,7 +249,7 @@ private:
                 Segment::Flags flags;
                 get_params(bytes, flags);
                 Segment * s = new (SYSTEM) Segment(bytes, flags);
-                result(reinterpret_cast<int>(s));
+                result(reinterpret_cast<long>(s));
             }   break;
             case Message::SEGMENT_CREATE_PHY: {
                 Segment::Phy_Addr phy_addr;
@@ -257,7 +257,7 @@ private:
                 Segment::Flags flags;
                 get_params(phy_addr, bytes, flags);
                 Segment * s = new (SYSTEM) Segment(phy_addr, bytes, flags);
-                result(reinterpret_cast<int>(s));
+                result(reinterpret_cast<long>(s));
             } break;
             case Message::SEGMENT_SIZE: {
                 Segment * s = reinterpret_cast<Segment *>(id());
@@ -286,7 +286,7 @@ private:
             case Message::MUTEX_CREATE: {
                 Mutex * m = new (SYSTEM) Mutex();
                 db<Agent>(TRC) << "AGENT CREATE MUTEX" << endl;
-                result(reinterpret_cast<int>(m));
+                result(reinterpret_cast<long>(m));
             }   break;
             case Message::MUTEX_LOCK: {
                 Mutex * m = reinterpret_cast<Mutex *>(id());
@@ -302,7 +302,7 @@ private:
                 Mutex * m = reinterpret_cast<Mutex *>(id());
                 Mutex_Handler * h = new (SYSTEM) Mutex_Handler(m);
                 db<Agent>(TRC) << "AGENT NEW MUTEX_HANDLER" << endl;
-                result(reinterpret_cast<int>(h));
+                result(reinterpret_cast<long>(h));
             }   break;
             case Message::MUTEX_OPERATOR: {
                 Mutex_Handler * h = reinterpret_cast<Mutex_Handler *>(id());
@@ -320,7 +320,7 @@ private:
                 int v;
                 get_params(v);
                 Semaphore * s = new (SYSTEM) Semaphore(v);
-                result(reinterpret_cast<int>(s));
+                result(reinterpret_cast<long>(s));
             }   break;
             case Message::SEMAPHORE_P: {
                 Semaphore * s = reinterpret_cast<Semaphore *>(id());
@@ -334,7 +334,7 @@ private:
                 Semaphore * s;
                 get_params(s);
                 Semaphore_Handler * sh = new (SYSTEM) Semaphore_Handler(s);
-                result(reinterpret_cast<int>(sh));
+                result(reinterpret_cast<long>(sh));
             }   break;
             case Message::SEMAPHORE_OPERATOR : {
                 Semaphore_Handler * sh;
@@ -350,7 +350,7 @@ private:
         switch(method()) {
             case Message::CONDITION_CREATE: {
                 Condition * c = new (SYSTEM) Condition();
-                result(reinterpret_cast<int>(c));
+                result(reinterpret_cast<long>(c));
             }   break;
             case Message::CONDITION_WAIT: {
                 Condition * c = reinterpret_cast<Condition *>(id());
@@ -371,7 +371,7 @@ private:
                 Condition * c;
                 get_params(c);
                 Condition_Handler * ch = new (SYSTEM) Condition_Handler(c);
-                result(reinterpret_cast<int>(ch));
+                result(reinterpret_cast<long>(ch));
             }   break;
             case Message::CONDITION_OPERATOR : {
                 Condition_Handler * ch;
@@ -392,7 +392,7 @@ private:
                 unsigned int times;
                 get_params(time, handler, times);
                 Alarm * a = new (SYSTEM) Alarm(time, handler, times);
-                result(reinterpret_cast<int>(a));
+                result(reinterpret_cast<long>(a));
             }   break;
             case Message::ALARM_PERIOD: {
                 Microsecond p;
@@ -430,7 +430,7 @@ private:
                 Microsecond time;
                 get_params(time);
                 Delay * d = new (SYSTEM) Delay(reinterpret_cast<const Microsecond &>(time));
-                result(reinterpret_cast<int>(d));
+                result(reinterpret_cast<long>(d));
             }   break;
           default:
                 db<Agent>(TRC) << "FAILED :(" << endl;
@@ -441,7 +441,7 @@ private:
         switch(method()) {
             case Message::CHRONOMETER_CREATE: {
                 Chronometer * c = new (SYSTEM) Chronometer();
-                result(reinterpret_cast<int>(c));
+                result(reinterpret_cast<long>(c));
             }   break;
             case Message::CHRONOMETER_FREQUENCY: {
                 Chronometer * c = reinterpret_cast<Chronometer *>(id());

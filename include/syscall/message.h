@@ -143,14 +143,14 @@ public:
     int entity(){return _entity;}
     int method(){return _method;}
     int result(){return _result;}
-    void result(int r){_result = r;}
+    void result(long r){_result = r;}
     char* params(){return _params;}
 
 private:
     int _id;
     int _entity;
     int _method;
-    int _result;
+    long _result;
     char _params[256];
 
 };

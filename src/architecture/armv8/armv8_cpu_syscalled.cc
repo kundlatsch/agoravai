@@ -7,10 +7,10 @@ extern "C" { void _sysexec(); }
 __BEGIN_SYS
 
 void CPU::syscalled() {
-//      ASM("stp x0, lr, [sp, #-16]  \n"
-//          "bl _sysexec   \n"
-//          "ldp x0, lr, [sp], #16  \n"
-//      );
+      ASM("stp x0, lr, [sp, #-16]  \n"
+    //    "bl _sysexec   \n"
+          "ldp x0, lr, [sp], #16  \n"
+      );
 }
 
 __END_SYS
