@@ -158,7 +158,61 @@ template<unsigned int ENTRIES>
     typedef _Page_Table<PT_ENTRIES> Page_Table;
 
     // Page Directory
-    typedef _Page_Table<PD_ENTRIES> Page_Directory;
+    class Page_Directory {
+    public:
+        Page_Directory() {}
+
+        PD_Entry & operator[](unsigned int i) { return _entry[i]; }
+        Page_Directory & log() { return *static_cast<Page_Directory *>(phy2log(this)); }
+
+        void map(int from, int to, Page_Flags flags, Color color) {
+            Phy_Addr * addr = alloc(to - from, color);
+            if(addr)
+                remap(addr, from, to, flags);
+            else
+                for( ; from < to; from++) {
+                    Log_Addr * pde = phy2log(&_entry[from]);
+                    *pde = phy2pde(alloc(1, color));
+                }
+        }
+
+        void map_contiguous(int from, int to, Page_Flags flags, Color color) {
+            remap(alloc(to - from, color), from, to, flags);
+        }
+
+        void remap(Phy_Addr addr, int from, int to, Page_Flags flags) {
+            addr = align_page(addr);
+            for( ; from < to; from++) {
+                Log_Addr * pde = phy2log(&_entry[from]);
+                *pde = phy2pde(addr);
+                addr += sizeof(Page);
+            }
+        }
+
+        void unmap(int from, int to) {
+            for( ; from < to; from++) {
+                free(_entry[from]);
+                Log_Addr * pde = phy2log(&_entry[from]);
+                *pde = 0;
+            }
+        }
+
+        friend OStream & operator<<(OStream & os, Page_Directory & pd) {
+            os << "{\n";
+            int brk = 0;
+            for(unsigned int i = 0; i < PD_ENTRIES; i++)
+                if(pd[i]) {
+                    os << "[" << i << "]=" << pd[i] << "  ";
+                    if(!(++brk % 4))
+                        os << "\n";
+                }
+            os << "\n}";
+            return os;
+        }
+
+    private:
+        PD_Entry _entry[PD_ENTRIES]; // the Phy_Addr in each entry passed through phy2pde()
+    };
 
     // Chunk (for Segment)
     class Chunk

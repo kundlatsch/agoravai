@@ -14,19 +14,16 @@ class Address_Space: private MMU::Directory
     friend class Scratchpad;    // for Address_Space(pd)
     friend class Task;
 
-private:
-    using MMU::Directory::activate;
-
 public:
     typedef CPU::Phy_Addr Phy_Addr;
     typedef CPU::Log_Addr Log_Addr;
 
-public:
     Address_Space();
     Address_Space(MMU::Page_Directory * pd);
     ~Address_Space();
 
     using MMU::Directory::pd;
+    using MMU::Directory::activate;
 
     Log_Addr attach(Segment * seg);
     Log_Addr attach(Segment * seg, Log_Addr addr);
