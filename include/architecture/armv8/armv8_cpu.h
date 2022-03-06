@@ -556,7 +556,7 @@ public:
     using CPU_Common::ntohs;
 
     // CPU Flags
-    typedef Reg32 Flags;
+    typedef Reg64 Flags;
     enum {
         FLAG_M          = 0x1f << 0,       // Processor Mode (5 bits)
         FLAG_T          = 1    << 5,       // Thumb state
