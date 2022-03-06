@@ -434,10 +434,33 @@ public:
     {
     public:
         Context() {}
-        Context(Log_Addr entry, Log_Addr exit, Log_Addr usp): Base::Context(entry, exit, 0) {}
+        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_SVC : FLAG_SVC)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
+            if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
+                _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12;
+            }
+        }
 
         void save() volatile;
         void load() const volatile;
+
+        public:
+            Reg32 _usp;
+            Reg32 _flags;
+            Reg32 _x0;
+            Reg32 _x1;
+            Reg32 _x2;
+            Reg32 _x3;
+            Reg32 _x4;
+            Reg32 _x5;
+            Reg32 _x6;
+            Reg32 _x7;
+            Reg32 _x8;
+            Reg32 _x9;
+            Reg32 _x10;
+            Reg32 _x11;
+            Reg32 _x12;
+            Reg32 _lr;
+            Reg32 _pc;
     };
 
 public:
@@ -477,16 +500,20 @@ public:
     static void switch_context(Context ** o, Context * n);
 
     template<typename ... Tn>
-    static Context * init_stack(Log_Addr usp, Log_Addr sp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
-        sp -= sizeof(Context);
-        Context * ctx = new(sp) Context(entry, exit, usp); // init_stack is called with usp = 0 for kernel threads
+    static Context * init_stack(Log_Addr usp, Log_Addr ksp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
+        ksp -= sizeof(Context);
+        Context * ctx = new(ksp) Context(entry, exit, usp, true);
         init_stack_helper(&ctx->_x0, an ...);
         return ctx;
     }
 
-    // In ARMv8, the main thread of each task gets parameters over registers, not the stack, and they are initialized by init_stack.
     template<typename ... Tn>
-    static Log_Addr init_user_stack(Log_Addr usp, void (* exit)(), Tn ... an) { return usp; }
+    static Context * init_user_stack(Log_Addr usp, Log_Addr ksp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
+        ksp -= sizeof(Context);
+        Context * ctx = new(ksp) Context(entry, exit, usp, false);
+        init_stack_helper(&ctx->_x0, an ...);
+        return ctx;
+    }
 
     static void syscall(void * message);
     static void syscalled();
@@ -509,6 +536,35 @@ public:
     using CPU_Common::htons;
     using CPU_Common::ntohl;
     using CPU_Common::ntohs;
+
+    // CPU Flags
+    typedef Reg32 Flags;
+    enum {
+        FLAG_M          = 0x1f << 0,       // Processor Mode (5 bits)
+        FLAG_T          = 1    << 5,       // Thumb state
+        FLAG_F          = 1    << 6,       // FIQ disable
+        FLAG_I          = 1    << 7,       // IRQ disable
+        FLAG_A          = 1    << 8,       // Imprecise Abort disable
+        FLAG_E          = 1    << 9,       // Endianess (0 ->> little, 1 -> big)
+        FLAG_GE         = 0xf  << 16,      // SIMD Greater than or Equal (4 bits)
+        FLAG_J          = 1    << 24,      // Jazelle state
+        FLAG_Q          = 1    << 27,      // Underflow and/or DSP saturation
+        FLAG_V          = 1    << 28,      // Overflow
+        FLAG_C          = 1    << 29,      // Carry
+        FLAG_Z          = 1    << 30,      // Zero
+        FLAG_N          = 1    << 31,      // Negative
+
+        // FLAG_M values
+        FLAG_USER       = 0x10,      // User mode
+        FLAG_FIQ        = 0x11,      // FIQ mode
+        FLAG_IRQ        = 0x12,      // IRQ mode
+        FLAG_SVC        = 0x13,      // SVC mode
+        FLAG_ABORT      = 0x17,      // Abort mode
+        FLAG_UNDEFINED  = 0x1b,      // Undefined mode
+        FLAG_SYSTEM     = 0x1f,      // System mode
+
+        FLAG_DEFAULTS   = FLAG_SVC
+    };
 
 private:
     template<typename Head, typename ... Tail>

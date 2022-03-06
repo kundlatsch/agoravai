@@ -1,6 +1,6 @@
-// EPOS ARMV7 CPU System Call Entry Implementation
+// EPOS ARMV8 CPU System Call Entry Implementation
 
-#include <architecture/armv7/armv7_cpu.h>
+#include <architecture/armv8/armv8_cpu.h>
 
 __BEGIN_SYS
 
@@ -8,23 +8,23 @@ void CPU::syscall(void * msg)
 {
     ASM(
         //Salvando contexto
-        "push {lr}  \n"
-        "push {r0, r12}  \n"
+        "str lr, [sp, #-8]!   \n"
+        "stp x0, x12, [sp, #-16]  \n"
         //Chamando sycall
-        "mov r0, %0 \n"
-        "mov r12, sp \n"  // salvar tmp sp_usr
-        "mrs sp, sp_usr \n" // carregar sp_svc
-        "msr sp_usr, r12 \n"// salvar sp_usr
+        // "mov x0, %0 \n"
+        // "mov x12, [sp] \n"  // salvar tmp sp_usr
+        // "mrs [sp], [sp_usr] \n" // carregar sp_svc
+        // "msr [sp_usr], x12 \n"// salvar sp_usr
 
-        "SVC 0x0    \n"
+        // "SVC 0x0    \n"
 
-        "mov r12, sp \n"  //salvar tmp sp_svc
-        "mrs sp, sp_usr \n" //carregar sp_usr
-        "msr sp_usr, r12 \n" //salver_sp_svc
+        // "mov x12, [sp] \n"  //salvar tmp sp_svc
+        // "mrs [sp], [sp_usr] \n" //carregar sp_usr
+        // "msr [sp_usr], x12 \n" //salver_sp_svc
 
         //Retornando contexto
-        "pop {r0, r12}   \n"
-        "pop {lr}   \n"
+        "ldp x0, x12, [sp, #16]   \n"
+        "ldr lr, [sp, #8]!   \n"
         "" :: "r"(msg)
     );
 }
