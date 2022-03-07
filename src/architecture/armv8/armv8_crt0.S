@@ -17,7 +17,13 @@ _start:
         .globl  __epos_app_entry
         .type   __epos_app_entry, function
 __epos_app_entry:
-        // Main's stack was allocated by Thread::init()
+_user_mode:
+        stp x1, x2, [sp, #-16]! 
+        mov x1, sp
+        mrs x2, sp_el0
+        msr sp_el1, x2
+        msr sp_el0, x1
+        ldp x1, x2, [sp], #16
         bl      main
         str     x0, [sp, #-8]!	// save main's return value to be used by exit()
         bl      _fini
