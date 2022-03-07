@@ -21,13 +21,13 @@ public:
     Stub_Segment(){}
     void set_id(int _id) {id = _id;}
 
-    Stub_Segment(unsigned int bytes, MMU::Flags flags = MMU::Flags::APP){
+    Stub_Segment(unsigned int bytes, _SYS::MMU::Flags flags = _SYS::MMU::Flags::APP){
         Message * msg = new Message(Message::ENTITY::SEGMENT, Message::SEGMENT_CREATE, bytes, flags);
         msg->act();
         id = msg->result();
     }
 
-    Stub_Segment(Segment::Phy_Addr phy_addr, unsigned int bytes, MMU::Flags flags = MMU::Flags::APP){
+    Stub_Segment(_SYS::Segment::Phy_Addr phy_addr, unsigned int bytes, _SYS::MMU::Flags flags = _SYS::MMU::Flags::APP){
         Message * msg = new Message(Message::ENTITY::SEGMENT, Message::SEGMENT_CREATE_PHY, phy_addr, bytes, flags);
         msg->act();
         id = msg->result();
@@ -40,7 +40,7 @@ public:
         return reinterpret_cast<int>(r);
     }
 
-    Segment::Phy_Addr phy_address() {
+    _SYS::Segment::Phy_Addr phy_address() {
         Message * msg = new Message(id, Message::ENTITY::SEGMENT, Message::SEGMENT_PHY_ADDRESS);
         msg->act();
         int r = msg->result();

@@ -31,35 +31,35 @@ public:
     }
 
     template<typename ... Tn>
-    Stub_Address_Space(MMU::Page_Directory * pd, Tn ... an){
+    Stub_Address_Space(_SYS::MMU::Page_Directory * pd, Tn ... an){
         Message * msg = new Message(Message::ENTITY::ADDRESS_SPACE, Message::ADDRESS_SPACE_CREATE_PD, pd);
         msg->act();
         id = msg->result();
     }
 
-    Address_Space::Log_Addr attach(Segment * seg) {
+    _SYS::Address_Space::Log_Addr attach(_SYS::Segment * seg) {
         Message * msg = new Message(id, Message::ENTITY::ADDRESS_SPACE, Message::ADDRESS_SPACE_ATTACH1, seg);
         msg->act();
         return msg->result();
     }
 
-    Address_Space::Log_Addr attach(Segment * seg, Address_Space::Log_Addr addr) {
+    _SYS::Address_Space::Log_Addr attach(_SYS::Segment * seg, _SYS::Address_Space::Log_Addr addr) {
         Message * msg = new Message(id, Message::ENTITY::ADDRESS_SPACE, Message::ADDRESS_SPACE_ATTACH2, seg, addr);
         msg->act();
         return msg->result();
     }
 
-    void detach(Segment * seg) {
+    void detach(_SYS::Segment * seg) {
         Message * msg = new Message(id, Message::ENTITY::ADDRESS_SPACE, Message::ADDRESS_SPACE_DETACH1, seg);
         msg->act();
     }
 
-    void detach(Segment * seg, Address_Space::Log_Addr addr) {
+    void detach(_SYS::Segment * seg, _SYS::Address_Space::Log_Addr addr) {
         Message * msg = new Message(id, Message::ENTITY::ADDRESS_SPACE, Message::ADDRESS_SPACE_DETACH2, seg, addr);
         msg->act();
     }
 
-    Address_Space::Phy_Addr physical(Address_Space::Log_Addr addr) {
+    _SYS::Address_Space::Phy_Addr physical(_SYS::Address_Space::Log_Addr addr) {
         Message * msg = new Message(id, Message::ENTITY::ADDRESS_SPACE, Message::ADDRESS_SPACE_PHYSICAL, addr);
         msg->act();
         return msg->result();

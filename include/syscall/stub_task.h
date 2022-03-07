@@ -23,7 +23,7 @@ public:
     Stub_Task();
 
     template<typename ... Tn>
-    Stub_Task(Stub_Segment * cs, Stub_Segment * ds, int (* entry)(Tn ...), const Address_Space::Log_Addr & code, const Address_Space::Log_Addr & data, Tn ... an){
+    Stub_Task(Stub_Segment * cs, Stub_Segment * ds, int (* entry)(Tn ...), const _SYS::Address_Space::Log_Addr & code, const _SYS::Address_Space::Log_Addr & data, Tn ... an){
         Message * msg = new Message(Message::ENTITY::TASK, Message::TASK_CREATE, cs, ds, entry, code, data);
         msg->act();
         _id = msg->result();
@@ -56,7 +56,7 @@ public:
         return reinterpret_cast<Stub_Segment *>(sd);
     }
 
-    Address_Space::Log_Addr code() {
+    _SYS::Address_Space::Log_Addr code() {
         Message * msg = new Message(_id, Message::ENTITY::TASK, Message::TASK_CODE);
         msg->act();
         int l = msg->result();
@@ -64,7 +64,7 @@ public:
         return l;
     }
 
-    Address_Space::Log_Addr data() {
+    _SYS::Address_Space::Log_Addr data() {
         Message * msg = new Message(_id, Message::ENTITY::TASK, Message::TASK_DATA);
         msg->act();
         int l = msg->result();

@@ -8,7 +8,7 @@ __BEGIN_SYS
 
 void CPU::syscalled() {
       ASM("stp x0, lr, [sp, #-16]  \n"
-    //    "bl _sysexec   \n"
+          "bl _sysexec   \n"
           "ldp x0, lr, [sp], #16  \n"
       );
 }

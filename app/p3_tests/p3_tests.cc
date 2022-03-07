@@ -3,7 +3,6 @@
 using namespace EPOS;
 
 _SYS::OStream cout;
-_SYS::OStream endl;
 
 int main()
 {
