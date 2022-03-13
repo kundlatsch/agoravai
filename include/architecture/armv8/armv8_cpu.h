@@ -8,6 +8,8 @@
 #include <architecture/armv7/armv7_cpu.h>
 #undef __cpu_common_only__
 
+extern "C" { void _go_user_mode(); }
+
 __BEGIN_SYS
 
 class ARMv8;
@@ -422,6 +424,28 @@ inline void ARMv8_A::Context::pop(bool interrupt)
                 eret                                                            \t" : : : "cc");
 }
 
+// void _go_user_mode() {
+//     ASM("       ldr   x30, [sp], #8             // pop PSR into x30             \t\n
+//                 ldp    x0,  x1, [sp], #16                                       \t\n
+//                 ldp    x2,  x3, [sp], #16                                       \t\n
+//                 ldp    x4,  x5, [sp], #16                                       \t\n
+//                 ldp    x6,  x7, [sp], #16                                       \t\n
+//                 ldp    x8,  x9, [sp], #16                                       \t\n
+//                 ldp   x10, x11, [sp], #16                                       \t\n
+//                 ldp   x12, x13, [sp], #16                                       \t\n
+//                 ldp   x14, x15, [sp], #16                                       \t\n
+//                 ldp   x16, x17, [sp], #16                                       \t\n
+//                 ldp   x18, x19, [sp], #16                                       \t\n
+//                 ldp   x20, x21, [sp], #16                                       \t\n
+//                 ldp   x22, x23, [sp], #16                                       \t\n
+//                 ldp   x24, x25, [sp], #16                                       \t\n
+//                 ldp   x26, x27, [sp], #16                                       \t\n
+//                 ldp   x28, x29, [sp], #16                                       \t\n
+//                 msr   spsr_el1, x30                                             \t\n
+//                 ldr   x30, [sp], #8             // pop LR to get to PC          \t\n
+//                 ldr   x30, [sp], #8             // pop PC                       \t" : : : "cc");
+// }
+
 class CPU: public ARMv8_A
 {
     friend class Init_System;
@@ -434,7 +458,7 @@ public:
     {
     public:
         Context() {}
-        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_SVC : FLAG_SVC)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
+        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_SVC : FLAG_USER)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
             if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
                 _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15;
                 _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19; _x20 = 20; _x21 = 21; _x22 = 22; _x23 = 23; _x24 = 24; _x25 = 25; _x26 = 26; _x27 = 27; _x28 = 28; _x29 = 29;
@@ -525,11 +549,36 @@ public:
         return ctx;
     }
 
+    // void _go_user_mode() {
+    //     ASM("       ldr   x30, [sp], #8             // pop PSR into x30             \t\n
+    //                 ldp    x0,  x1, [sp], #16                                       \t\n
+    //                 ldp    x2,  x3, [sp], #16                                       \t\n
+    //                 ldp    x4,  x5, [sp], #16                                       \t\n
+    //                 ldp    x6,  x7, [sp], #16                                       \t\n
+    //                 ldp    x8,  x9, [sp], #16                                       \t\n
+    //                 ldp   x10, x11, [sp], #16                                       \t\n
+    //                 ldp   x12, x13, [sp], #16                                       \t\n
+    //                 ldp   x14, x15, [sp], #16                                       \t\n
+    //                 ldp   x16, x17, [sp], #16                                       \t\n
+    //                 ldp   x18, x19, [sp], #16                                       \t\n
+    //                 ldp   x20, x21, [sp], #16                                       \t\n
+    //                 ldp   x22, x23, [sp], #16                                       \t\n
+    //                 ldp   x24, x25, [sp], #16                                       \t\n
+    //                 ldp   x26, x27, [sp], #16                                       \t\n
+    //                 ldp   x28, x29, [sp], #16                                       \t\n
+    //                 msr   spsr_el1, x30                                             \t\n
+    //                 ldr   x30, [sp], #8             // pop LR to get to PC          \t\n
+    //                 ldr   x30, [sp], #8             // pop PC                       \t" : : : "cc");
+    // }
+
     template<typename ... Tn>
     static Context * init_user_stack(Log_Addr usp, Log_Addr ksp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
+        db<Context>(TRC) << "FAILED :(" << endl;
         ksp -= sizeof(Context);
         Context * ctx = new(ksp) Context(entry, exit, usp, false);
         init_stack_helper(&ctx->_x0, an ...);
+        ksp -= sizeof(Context);
+        ctx = new(ksp) Context(&_go_user_mode, 0, 0, true);
         return ctx;
     }
 

@@ -4,6 +4,32 @@
 #include <machine/ic.h>
 #include <machine/timer.h>
 
+extern "C" { void _go_user_mode() __attribute__ ((naked)); }
+extern "C" { void __exit(); }
+extern "C" { void _exit(int s); }
+
+void _go_user_mode() {
+        ASM("       ldr   x30, [sp], #8             // pop PSR into x30             \t\n\
+                    ldp    x0,  x1, [sp], #16                                       \t\n\
+                    ldp    x2,  x3, [sp], #16                                       \t\n\
+                    ldp    x4,  x5, [sp], #16                                       \t\n\
+                    ldp    x6,  x7, [sp], #16                                       \t\n\
+                    ldp    x8,  x9, [sp], #16                                       \t\n\
+                    ldp   x10, x11, [sp], #16                                       \t\n\
+                    ldp   x12, x13, [sp], #16                                       \t\n\
+                    ldp   x14, x15, [sp], #16                                       \t\n\
+                    ldp   x16, x17, [sp], #16                                       \t\n\
+                    ldp   x18, x19, [sp], #16                                       \t\n\
+                    ldp   x20, x21, [sp], #16                                       \t\n\
+                    ldp   x22, x23, [sp], #16                                       \t\n\
+                    ldp   x24, x25, [sp], #16                                       \t\n\
+                    ldp   x26, x27, [sp], #16                                       \t\n\
+                    ldp   x28, x29, [sp], #16                                       \t\n\
+                    msr   spsr_el1, x30                                             \t\n\
+                    ldr   x30, [sp], #8             // pop LR to get to PC          \t\n\
+                    ldr   x30, [sp], #8             // pop PC                       \t" : : : "cc");
+    }
+
 __BEGIN_SYS
 
 IC::Interrupt_Handler IC::_eoi_vector[INTS] = {

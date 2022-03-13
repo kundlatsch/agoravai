@@ -8,11 +8,9 @@ void CPU::syscall(void * msg)
 {
     ASM(
         //Salvando contexto
-        "str lr, [sp, #-8]!   \n"
         "str x0, [sp, #-8]!   \n"
-        "mov %0, x0     \n" 
+        "mov x0, %0     \n" 
         "SVC 0x0    \n"
-        "ldr lr, [sp, #8]!   \n"
         "ldr lr, [sp, #8]!   \n"
         "" :: "r"(msg)
     );

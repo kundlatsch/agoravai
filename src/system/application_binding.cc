@@ -32,7 +32,7 @@ extern "C" {
     // OStream
     void _print(const char * s) {
         // Message msg(Message::ENTITY::DISPLAY, Message::PRINT, reinterpret_cast<int>(s));
-        Message msg(Message::ENTITY::DISPLAY, Message::PRINT, s);
+        Message msg(Message::ENTITY::DISPLAY, Message::PRINT);
         msg.act();
     }
 }

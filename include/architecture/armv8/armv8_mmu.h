@@ -214,6 +214,7 @@ template<unsigned int ENTRIES>
         PD_Entry _entry[PD_ENTRIES]; // the Phy_Addr in each entry passed through phy2pde()
     };
 
+
     // Chunk (for Segment)
     class Chunk
     {
@@ -325,7 +326,7 @@ template<unsigned int ENTRIES>
 
         Log_Addr attach(const Chunk & chunk, unsigned int from = directory(APP_LOW)) {
             flush_tlb();
-            for(unsigned int i = from; i < directory(SYS); i++)
+            for(unsigned int i = from; i < PD_ENTRIES; i++)
                 if(attach(i, chunk.pt(), chunk.pts(), chunk.flags()))
                     return i << DIRECTORY_SHIFT;
             return Log_Addr(false);
@@ -534,7 +535,16 @@ public:
     static Phy_Addr pd() { return CPU::pd(); }
     static void pd(Phy_Addr pd) { CPU::pd(pd); CPU::flush_tlb(); CPU::isb(); CPU::dsb(); }
 
-    static void flush_tlb() { CPU::flush_tlb(); }
+    // static void flush_tlb() {
+    //     // https://forum.osdev.org/viewtopic.php?t=36412&p=303237
+    //     // ASM("DSB ISHST");
+    //     // ASM("TLBI VAAE1");
+    //     // ASM("DC CVAU");
+    //     // ASM("DSB ISH");
+    // }
+
+    static void flush_tlb() {}
+
     static void flush_tlb(Log_Addr addr) { CPU::flush_tlb(directory_bits(addr)); } // only bits from 31 to 12, all ASIDs
 
     static void init();
