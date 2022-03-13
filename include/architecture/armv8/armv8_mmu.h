@@ -158,7 +158,61 @@ template<unsigned int ENTRIES>
     typedef _Page_Table<PT_ENTRIES> Page_Table;
 
     // Page Directory
-    typedef _Page_Table<PD_ENTRIES> Page_Directory;
+    class Page_Directory {
+    public:
+        Page_Directory() {}
+
+        PD_Entry & operator[](unsigned int i) { return _entry[i]; }
+        Page_Directory & log() { return *static_cast<Page_Directory *>(phy2log(this)); }
+
+        void map(int from, int to, Page_Flags flags, Color color) {
+            Phy_Addr * addr = alloc(to - from, color);
+            if(addr)
+                remap(addr, from, to, flags);
+            else
+                for( ; from < to; from++) {
+                    Log_Addr * pde = phy2log(&_entry[from]);
+                    *pde = phy2pde(alloc(1, color));
+                }
+        }
+
+        void map_contiguous(int from, int to, Page_Flags flags, Color color) {
+            remap(alloc(to - from, color), from, to, flags);
+        }
+
+        void remap(Phy_Addr addr, int from, int to, Page_Flags flags) {
+            addr = align_page(addr);
+            for( ; from < to; from++) {
+                Log_Addr * pde = phy2log(&_entry[from]);
+                *pde = phy2pde(addr);
+                addr += sizeof(Page);
+            }
+        }
+
+        void unmap(int from, int to) {
+            for( ; from < to; from++) {
+                free(_entry[from]);
+                Log_Addr * pde = phy2log(&_entry[from]);
+                *pde = 0;
+            }
+        }
+
+        friend OStream & operator<<(OStream & os, Page_Directory & pd) {
+            os << "{\n";
+            int brk = 0;
+            for(unsigned int i = 0; i < PD_ENTRIES; i++)
+                if(pd[i]) {
+                    os << "[" << i << "]=" << pd[i] << "  ";
+                    if(!(++brk % 4))
+                        os << "\n";
+                }
+            os << "\n}";
+            return os;
+        }
+
+    private:
+        PD_Entry _entry[PD_ENTRIES];
+    };
 
     // Chunk (for Segment)
     class Chunk
@@ -270,13 +324,15 @@ template<unsigned int ENTRIES>
         void activate() const { ARMv8_MMU::pd(_pd); }
 
         Log_Addr attach(const Chunk & chunk, unsigned int from = directory(APP_LOW)) {
-            for(unsigned int i = from; i < directory(SYS); i++)
+            flush_tlb();
+            for(unsigned int i = from; i < PD_ENTRIES; i++)
                 if(attach(i, chunk.pt(), chunk.pts(), chunk.flags()))
                     return i << DIRECTORY_SHIFT;
             return Log_Addr(false);
         }
 
         Log_Addr attach(const Chunk & chunk, Log_Addr addr) {
+            flush_tlb();
             unsigned int from = directory(addr);
             if(attach(from, chunk.pt(), chunk.pts(), chunk.flags()))
                 return from << DIRECTORY_SHIFT;
@@ -284,6 +340,7 @@ template<unsigned int ENTRIES>
         }
 
         void detach(const Chunk & chunk) {
+            flush_tlb();
             for(unsigned int i = 0; i < PD_ENTRIES; i++) {
                 if(indexes(pte2phy((*_pd)[i])) == indexes(chunk.pt())) {
                     detach(i, chunk.pt(), chunk.pts());
@@ -294,6 +351,7 @@ template<unsigned int ENTRIES>
         }
 
         void detach(const Chunk & chunk, Log_Addr addr) {
+            flush_tlb();
             unsigned int from = directory(addr);
             if(indexes(pte2phy((*_pd)[from])) != indexes(chunk.pt())) {
                 db<MMU>(WRN) << "MMU::Directory::detach(pt=" << chunk.pt() << ",addr=" << addr << ") failed!" << endl;
@@ -311,6 +369,7 @@ template<unsigned int ENTRIES>
 
     private:
         bool attach(unsigned int from, const Page_Table * pt, unsigned int n, Page_Flags flags) {
+            flush_tlb();
             for(unsigned int i = from; i < from + n; i++)
                 if(_pd->log()[i])
                     return false;
@@ -320,7 +379,9 @@ template<unsigned int ENTRIES>
         }
 
         void detach(unsigned int from, const Page_Table * pt, unsigned int n) {
+            flush_tlb();
             for(unsigned int i = from; i < from + n; i++) {
+                flush_tlb();
                 _pd->log()[i] = 0;
                 // flush_tlb(i << DIRECTORY_SHIFT);
             }
@@ -471,10 +532,10 @@ public:
     }
 
     static Phy_Addr pd() { return CPU::pd(); }
-    static void pd(Phy_Addr pd) { CPU::pd(pd); /*CPU::flush_tlb();*/ CPU::isb(); CPU::dsb(); }
+    static void pd(Phy_Addr pd) { CPU::pd(pd); CPU::flush_tlb(); CPU::isb(); CPU::dsb(); }
 
-    static void flush_tlb() { /*CPU::flush_tlb();*/ }
-    static void flush_tlb(Log_Addr addr) { /*CPU::flush_tlb(directory_bits(addr));*/ } // only bits from 31 to 12, all ASIDs
+    // static void flush_tlb() { CPU::flush_tlb(); }
+    static void flush_tlb() {ASM("hvc #0");}
 
     static void init();
 

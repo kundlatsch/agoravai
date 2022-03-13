@@ -8,6 +8,8 @@
 #include <architecture/armv7/armv7_cpu.h>
 #undef __cpu_common_only__
 
+extern "C" { void _go_user_mode(); }
+
 __BEGIN_SYS
 
 class ARMv8;
@@ -139,7 +141,7 @@ public:
     {
     public:
         Context(){}
-        Context(Log_Addr entry, Log_Addr exit, Log_Addr usp): _flags(FLAG_SP_ELn | FLAG_EL1 | FLAG_A | FLAG_D), _lr(exit), _pc(entry) {
+        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_EL1 : FLAG_EL0)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
             if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
                 _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15;
                 _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19; _x20 = 20; _x21 = 21; _x22 = 22; _x23 = 23; _x24 = 24; _x25 = 25; _x26 = 26; _x27 = 27; _x28 = 28; _x29 = 29;
@@ -184,11 +186,13 @@ public:
                << ",sp="  << &c
                << ",lr="  << c._lr
                << ",pc="  << c._pc
+               << ",usp=" << c._usp
                << ",psr=" << c._flags
                << "}" << dec;
             return os;
         }
     public:
+        Reg _usp;
         Reg _flags;
         Reg _x0;
         Reg _x1;
@@ -349,7 +353,10 @@ public:
     static Reg  pd() { return ttbr0(); }
     static void pd(Reg r) {  ttbr0(r); }
 
-    static void flush_tlb();
+   static void flush_tlb() {
+       db<MMU>(TRC) << "CPU::flush_tlb() " << endl;
+       ASM("hvc #0                                   \t\n");
+   }
     static void flush_tlb(Reg r);
 
     static void flush_branch_predictors();
@@ -413,10 +420,7 @@ inline void ARMv8_A::Context::pop(bool interrupt)
                 ldp   x28, x29, [sp], #16                                       \t\n\
                 msr   spsr_el1, x30                                             \t\n\
                 ldr   x30, [sp], #8             // pop LR to get to PC          \t\n\
-                ldr   x30, [sp], #8             // pop PC                       \t\n\
-                msr   ELR_EL1, x30                                              \t\n\
-                ldr   x30, [sp, #-16]           // pop LR                       \t\n\
-                eret                                                            \t" : : : "cc");
+                ldr   x30, [sp], #8             // pop PC                       \t" : : : "cc");
 }
 
 class CPU: public ARMv8_A
@@ -431,10 +435,50 @@ public:
     {
     public:
         Context() {}
-        Context(Log_Addr entry, Log_Addr exit, Log_Addr usp): Base::Context(entry, exit, 0) {}
+        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_EL1 : FLAG_EL0)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
+            if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
+                _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15;
+                _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19; _x20 = 20; _x21 = 21; _x22 = 22; _x23 = 23; _x24 = 24; _x25 = 25; _x26 = 26; _x27 = 27; _x28 = 28; _x29 = 29;
+            }
+        }
 
         void save() volatile;
         void load() const volatile;
+        public:
+            Reg64 _usp;
+            Reg64 _flags;
+            Reg64 _x0;
+            Reg64 _x1;
+            Reg64 _x2;
+            Reg64 _x3;
+            Reg64 _x4;
+            Reg64 _x5;
+            Reg64 _x6;
+            Reg64 _x7;
+            Reg64 _x8;
+            Reg64 _x9;
+            Reg64 _x10;
+            Reg64 _x11;
+            Reg64 _x12;
+            Reg64 _x13;
+            Reg64 _x14;
+            Reg64 _x15;
+            Reg64 _x16;
+            Reg64 _x17; 
+            Reg64 _x18;
+            Reg64 _x19;
+            Reg64 _x20;
+            Reg64 _x21;
+            Reg64 _x22;
+            Reg64 _x23;
+            Reg64 _x24;
+            Reg64 _x25;
+            Reg64 _x26;
+            Reg64 _x27;
+            Reg64 _x28;
+            Reg64 _x29;
+            Reg64 _lr;
+            Reg64 _pc;
     };
 
 public:
@@ -476,14 +520,21 @@ public:
     template<typename ... Tn>
     static Context * init_stack(Log_Addr usp, Log_Addr sp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
         sp -= sizeof(Context);
-        Context * ctx = new(sp) Context(entry, exit, usp); // init_stack is called with usp = 0 for kernel threads
+        Context * ctx = new(sp) Context(entry, exit, usp, true);
         init_stack_helper(&ctx->_x0, an ...);
         return ctx;
     }
 
     // In ARMv8, the main thread of each task gets parameters over registers, not the stack, and they are initialized by init_stack.
     template<typename ... Tn>
-    static Log_Addr init_user_stack(Log_Addr usp, void (* exit)(), Tn ... an) { return usp; }
+    static Context * init_user_stack(Log_Addr usp, Log_Addr ksp, void (* exit)(), int (* entry)(Tn ...), Tn ... an) {
+        ksp -= sizeof(Context);
+        Context * ctx = new(ksp) Context(entry, exit, usp, false);
+        init_stack_helper(&ctx->_x0, an ...);
+        ksp -= sizeof(Context);
+        ctx = new(ksp) Context(&_go_user_mode, 0, 0, true);
+        return ctx;
+    }
 
     static void syscall(void * message);
     static void syscalled();

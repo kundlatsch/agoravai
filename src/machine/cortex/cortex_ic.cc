@@ -10,8 +10,36 @@
 extern "C" { void _int_entry() __attribute__ ((naked, nothrow, alias("_ZN4EPOS1S2IC5entryEv"))); }
 extern "C" { void _eoi(unsigned int) __attribute__ ((alias("_ZN4EPOS1S2IC3eoiEj"))); }
 extern "C" { void __exit(); }
+extern "C" { void _go_user_mode(); }
+
+void _go_user_mode() {
+    ASM("       ldr   x30, [sp], #8             // pop PSR into x30             \t\n\
+                ldp    x0,  x1, [sp], #16                                       \t\n\
+                ldp    x2,  x3, [sp], #16                                       \t\n\
+                ldp    x4,  x5, [sp], #16                                       \t\n\
+                ldp    x6,  x7, [sp], #16                                       \t\n\
+                ldp    x8,  x9, [sp], #16                                       \t\n\
+                ldp   x10, x11, [sp], #16                                       \t\n\
+                ldp   x12, x13, [sp], #16                                       \t\n\
+                ldp   x14, x15, [sp], #16                                       \t\n\
+                ldp   x16, x17, [sp], #16                                       \t\n\
+                ldp   x18, x19, [sp], #16                                       \t\n\
+                ldp   x20, x21, [sp], #16                                       \t\n\
+                ldp   x22, x23, [sp], #16                                       \t\n\
+                ldp   x24, x25, [sp], #16                                       \t\n\
+                ldp   x26, x27, [sp], #16                                       \t\n\
+                ldp   x28, x29, [sp], #16                                       \t\n\
+                msr   spsr_el1, x30                                             \t\n\
+                ldr   x30, [sp], #8             // pop LR to get to PC          \t\n\
+                ldr   x30, [sp], #8             // pop PC                       \t\n\
+                msr   ELR_EL1, x30                                              \t\n\
+                ldr   x30, [sp, #-16]           // pop LR                       \t\n\
+                eret                                                            \t" : : : "cc");
+}
+
 
 __BEGIN_SYS
+
 
 IC::Interrupt_Handler IC::_int_vector[IC::INTS];
 
@@ -129,6 +157,54 @@ extern "C" { void _dispatch(unsigned int) __attribute__ ((alias("_ZN4EPOS1S2IC8d
 
 void IC::entry()
 {
+    // str: store register
+    // stp: store pair
+    // mrs: move the contents of a PSR to a general-purpose register
+    // ldr: load register
+    // ldp: load pair
+    ASM("str        x30, [sp, # -8]!                                     \t\n\
+         stp   x28, x29, [sp, #-16]!                                     \t\n\
+         stp   x26, x27, [sp, #-16]!                                     \t\n\
+         stp   x24, x25, [sp, #-16]!                                     \t\n\
+         stp   x22, x23, [sp, #-16]!                                     \t\n\
+         stp   x20, x21, [sp, #-16]!                                     \t\n\
+         stp   x18, x19, [sp, #-16]!                                     \t\n\
+         stp   x16, x17, [sp, #-16]!                                     \t\n\
+         stp   x14, x15, [sp, #-16]!                                     \t\n\
+         stp   x12, x13, [sp, #-16]!                                     \t\n\
+         stp   x10, x11, [sp, #-16]!                                     \t\n\
+         stp    x8,  x9, [sp, #-16]!                                     \t\n\
+         stp    x6,  x7, [sp, #-16]!                                     \t\n\
+         stp    x4,  x5, [sp, #-16]!                                     \t\n\
+         stp    x2,  x3, [sp, #-16]!                                     \t\n\
+         stp    x0,  x1, [sp, #-16]!                                     \t\n\
+         mrs x30, elr_el1                                                \t\n\
+         str        x30, [sp, # -8]!                                     \t\n\
+         mrs x30, spsr_el1                                               \t\n\
+         str        x30, [sp, # -8]!                                     \t" : : : "cc");
+
+    dispatch(int_id());
+
+    ASM("ldr         x30, [sp], #8                                       \t\n\
+         msr  spsr_el1, x30                                              \t\n\
+         ldr         x30, [sp], #8                                       \t\n\
+         msr  elr_el1, x30                                               \t\n\
+         ldp    x0,  x1, [sp], #16                                       \t\n\
+         ldp    x2,  x3, [sp], #16                                       \t\n\
+         ldp    x4,  x5, [sp], #16                                       \t\n\
+         ldp    x6,  x7, [sp], #16                                       \t\n\
+         ldp    x8,  x9, [sp], #16                                       \t\n\
+         ldp   x10, x11, [sp], #16                                       \t\n\
+         ldp   x12, x13, [sp], #16                                       \t\n\
+         ldp   x14, x15, [sp], #16                                       \t\n\
+         ldp   x16, x17, [sp], #16                                       \t\n\
+         ldp   x18, x19, [sp], #16                                       \t\n\
+         ldp   x20, x21, [sp], #16                                       \t\n\
+         ldp   x22, x23, [sp], #16                                       \t\n\
+         ldp   x24, x25, [sp], #16                                       \t\n\
+         ldp   x26, x27, [sp], #16                                       \t\n\
+         ldp   x28, x29, [sp], #16                                       \t\n\
+         ldr        x30, [sp], #8                                        \t" : : : "cc");
 }
 
 #endif    

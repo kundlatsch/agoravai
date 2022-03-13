@@ -50,6 +50,7 @@ public:
             IO   = 1 << 8, // Memory Mapped I/O (0=memory, 1=I/O)
             SYS  = (PRE | RD | RW | EX),
             APP  = (PRE | RD | RW | EX | USR),
+            SHR  = (PRE | RD | RW | EX | USR),
             APPC = (PRE | RD | EX | USR),
             APPD = (PRE | RD | RW | USR)
         };

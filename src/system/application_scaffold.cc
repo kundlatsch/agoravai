@@ -8,14 +8,16 @@ __BEGIN_SYS
 char Application::_preheap[];
 Heap * Application::_heap;
 
-__END_SYS
-
-__BEGIN_API
-
-// Global objects
-__USING_UTIL
 OStream cout;
 OStream cerr;
+__END_SYS
 
-__END_API
+// __BEGIN_API
+
+// // Global objects
+// __USING_UTIL
+// OStream cout;
+// OStream cerr;
+
+// __END_API
 

@@ -13,8 +13,6 @@ void Thread::init()
 {
     db<Init, Thread>(TRC) << "Thread::init()" << endl;
 
-    Criterion::init();
-
     typedef int (Main)();
 
     System_Info * si = System::info();
@@ -27,7 +25,19 @@ void Thread::init()
         // In this case, _init will have already been called, before Init_Application to construct MAIN's global objects.
         main = reinterpret_cast<Main *>(__epos_app_entry);
 
-    new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), main);
+    Criterion::init();
+
+    if (Traits<System>::multitask) {
+        Address_Space* as = new (SYSTEM) Address_Space(MMU::current());
+        Segment* cs = new (SYSTEM) Segment(Log_Addr(si->lm.app_code), si->lm.app_code_size, Segment::Flags::APPC);
+        Segment* ds = new (SYSTEM) Segment(Log_Addr(si->lm.app_data), si->lm.app_data_size, Segment::Flags::APPD);
+        Log_Addr code = si->lm.app_code;
+        Log_Addr data = si->lm.app_data;
+        new (SYSTEM) Task(as, cs, ds, main, code, data);
+    }
+    else {
+        new (SYSTEM) Thread(Thread::Configuration(Thread::RUNNING, Thread::MAIN), reinterpret_cast<int (*)()>(main));
+    }
 
     // Idle thread creation does not cause rescheduling (see Thread::constructor_epilogue)
     new (SYSTEM) Thread(Thread::Configuration(Thread::READY, Thread::IDLE), &Thread::idle);

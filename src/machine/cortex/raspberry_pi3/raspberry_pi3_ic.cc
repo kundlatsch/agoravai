@@ -1,5 +1,6 @@
 // EPOS Raspberry Pi3 (ARM Cortex-A53) IC Mediator Implementation
 
+#include <architecture/cpu.h>
 #include <machine/machine.h>
 #include <machine/ic.h>
 #include <machine/timer.h>

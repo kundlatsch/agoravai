@@ -47,6 +47,23 @@ private:
     static char _preheap[(Traits<System>::multiheap ? sizeof(Segment) : 0) + sizeof(Heap)];
     static Segment * _heap_segment;
     static Heap * _heap;
+    static Segment * _shared_segment;
+};
+
+// Class used to store and handle the shared memory heap with the "new (SHARED)" operator
+class Shared_Memory {
+    friend class Init_System;
+    friend void * ::malloc(size_t);
+    friend void ::free(void*);
+    friend void * ::operator new(size_t, const EPOS::Shared_Allocator&);
+    friend void * ::operator new[](size_t, const EPOS::Shared_Allocator&);
+    friend void ::operator delete(void*);
+    friend void ::operator delete[](void*);
+
+    private:
+    static char _preheap[sizeof(Segment) + sizeof(Heap)];
+    static Segment * _shared_heap_segment;
+    static Heap * _shared_heap;
 };
 
 __END_SYS
@@ -92,6 +109,14 @@ inline void * operator new(size_t bytes, const EPOS::System_Allocator & allocato
 
 inline void * operator new[](size_t bytes, const EPOS::System_Allocator & allocator) {
     return _SYS::System::_heap->alloc(bytes);
+}
+
+inline void * operator new(size_t bytes, const EPOS::Shared_Allocator & allocator) {
+    return _SYS::Shared_Memory::_shared_heap->alloc(bytes);
+}
+
+inline void * operator new[](size_t bytes, const EPOS::Shared_Allocator & allocator) {
+    return _SYS::Shared_Memory::_shared_heap->alloc(bytes);
 }
 
 // Delete cannot be declared inline due to virtual destructors
