@@ -27,7 +27,10 @@ void _go_user_mode() {
                     ldp   x28, x29, [sp], #16                                       \t\n\
                     msr   spsr_el1, x30                                             \t\n\
                     ldr   x30, [sp], #8             // pop LR to get to PC          \t\n\
-                    ldr   x30, [sp], #8             // pop PC                       \t" : : : "cc");
+                    ldr   x30, [sp], #8             // pop PC                       \t\n\
+                    msr   ELR_EL1, x30                                              \t\n\
+                    ldr   x30, [sp, #-16]           // pop LR                       \t\n\
+                    eret                                                            \t" : : : "cc");
     }
 
 __BEGIN_SYS

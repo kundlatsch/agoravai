@@ -1076,8 +1076,8 @@ void _vector_table()
                         ldr x30, [sp], #8                                       \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
-                       .balign 128                                             \t\n\
-        .fiq_curr_sp0:  str x30, [sp,#-8]!                                      \t\n\
+                        .balign 128                                             \t\n\
+         .fiq_curr_sp0: str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
                         ldr x29, .ic_entry                                      \t\n\
@@ -1089,7 +1089,7 @@ void _vector_table()
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
-        .error_curr_sp0:str x30, [sp,#-8]!                                      \t\n\
+         .error_curr_sp0:str x30, [sp,#-8]!                                     \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
                         ldr x29, .ic_entry                                      \t\n\
@@ -1137,7 +1137,7 @@ void _vector_table()
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
-        .error_curr_spx:str x30, [sp,#-8]!                                      \t\n\
+         .error_curr_spx:str x30, [sp,#-8]!                                     \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
                         ldr x29, .ic_entry                                      \t\n\
@@ -1148,11 +1148,11 @@ void _vector_table()
                         ldr x30, [sp], #8                                       \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
-        // Lower EL using AArch64                                               \t\n\
-                         .balign 128                                             \t\n\
+                        .balign 128                                             \t\n\
         .sync_lower64:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x28, [sp,#-8]!                                      \t\n\
+                                                                                \t\n\
                         mrs x28, CurrentEL                                      \t\n\
                         and x28, x28, #12                                       \t\n\
                         lsr x28, x28, #2                                        \t\n\
@@ -1160,19 +1160,20 @@ void _vector_table()
                         cmp x28, #2                                             \t\n\
                         beq .1                                                  \t\n\
                         ldr x29, .ic_entry                                      \t\n\
+                        blr x29                                                 \t\n\
                         b .2                                                    \t\n\
                     .1:                                                         \t\n\
                         dsb   ishst                                             \t\n\
                         tlbi  alle1                                             \t\n\
                         dsb   ish                                               \t\n\
-                        isb                                                     \t\n\
+                       isb                                                      \t\n\
                     .2:                                                         \t\n\
                         ldr x28, [sp], #8                                       \t\n\
                         ldr x29, [sp], #8                                       \t\n\
                         ldr x30, [sp], #8                                       \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
-                        .balign 128                                             \t\n\
+                         .balign 128                                            \t\n\
         .irq_lower64:   str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
@@ -1184,7 +1185,7 @@ void _vector_table()
                         ldr x30, [sp], #8                                       \t\n\
                         eret                                                    \t\n\
                                                                                 \t\n\
-                        .balign 128                                             \t\n\
+                         .balign 128                                            \t\n\
         .fiq_lower64:   str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
@@ -1207,10 +1208,8 @@ void _vector_table()
                         ldr x29, [sp], #8                                       \t\n\
                         ldr x30, [sp], #8                                       \t\n\
                         eret                                                    \t\n\
-                                                                                 \t\n\
                                                                                 \t\n\
-                        // Lower EL using AArch32                               \t\n\
-                        .balign 128                                             \t\n\
+                         .balign 128                                            \t\n\
         .sync_lower32:  str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
@@ -1247,7 +1246,6 @@ void _vector_table()
                         eret                                                    \t\n\
                                                                                 \t\n\
                         .balign 128                                             \t\n\
-                                                                                \t\n\
         .error_lower32: str x30, [sp,#-8]!                                      \t\n\
                         str x29, [sp,#-8]!                                      \t\n\
                         str x0,  [sp,#-8]!                                      \t\n\
@@ -1258,10 +1256,8 @@ void _vector_table()
                         ldr x29, [sp], #8                                       \t\n\
                         ldr x30, [sp], #8                                       \t\n\
                         eret                                                    \t\n\
-                                                                                \t\n\
-                        .balign 128                                             \t\n\
         .ic_entry: .dword 0x0                                                   \t");
-}
+ }
 
 void _reset()
 {
