@@ -18,6 +18,7 @@ extern "C" {
     void __cxa_pure_virtual() { db<void>(ERR) << "Pure Virtual method called!" << endl; }
     void _syscall(void *m) { CPU::syscall(m); } 
     void _sysexec() { Agent::_exec(); } 
+    void _exec(void * m) { reinterpret_cast<Agent *>(m)->exec(); }
 
     void _print(const char * s) { Display::puts(s); }
 }

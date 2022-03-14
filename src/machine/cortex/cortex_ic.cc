@@ -156,12 +156,7 @@ void IC::kill()
 extern "C" { void _dispatch(unsigned int) __attribute__ ((alias("_ZN4EPOS1S2IC8dispatchEj"))); }
 
 void IC::entry()
-{
-    // str: store register
-    // stp: store pair
-    // mrs: move the contents of a PSR to a general-purpose register
-    // ldr: load register
-    // ldp: load pair
+{    
     ASM("str        x30, [sp, # -8]!                                     \t\n\
          stp   x28, x29, [sp, #-16]!                                     \t\n\
          stp   x26, x27, [sp, #-16]!                                     \t\n\
@@ -183,7 +178,23 @@ void IC::entry()
          mrs x30, spsr_el1                                               \t\n\
          str        x30, [sp, # -8]!                                     \t" : : : "cc");
 
-    dispatch(int_id());
+    void * msg = reinterpret_cast<void *>(CPU::r1());
+    unsigned int i = int_id();
+    
+    switch (CPU::esr_el1() >> 26) {
+        case 0: // interuption
+            dispatch(i);
+            break;
+        case 0x15: // syscall
+            CPU::esr_el1(0);
+            CPU::int_enable();
+            CPU::syscalled(msg); 
+            break;
+        default:
+            // while (true) {}; // Catch erros without further propagation
+            dispatch(i);
+            break;
+    }
 
     ASM("ldr         x30, [sp], #8                                       \t\n\
          msr  spsr_el1, x30                                              \t\n\

@@ -136,12 +136,17 @@ public:
         TTBR1_TBI                   = 0b1ULL    << 38 // ignore top byte when calculating address on TTBR1
     };
 
+enum {
+    SVC_MODE  = FLAG_EL1 | FLAG_A | FLAG_D | FLAG_SP_ELn,
+    USER_MODE = FLAG_EL0 | FLAG_A | FLAG_D,
+};
+
 public:
     class Context
     {
     public:
         Context(){}
-        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_EL1 : FLAG_EL0)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
+        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? SVC_MODE : USER_MODE)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
             if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
                 _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15;
                 _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19; _x20 = 20; _x21 = 21; _x22 = 22; _x23 = 23; _x24 = 24; _x25 = 25; _x26 = 26; _x27 = 27; _x28 = 28; _x29 = 29;
@@ -273,6 +278,16 @@ public:
     static void fpu_restore();
 
     // ARMv8 specifics
+
+    static unsigned int el() {
+        Reg el;
+        ASM("mrs %0, CurrentEL" : "=r"(el) : : );
+        return el >> 2;
+    }
+
+    static Reg spsr_el1() { Reg r; ASM("mrs %0, spsr_el1" : "=r"(r) :); return r; }
+    static void spsr_el1(Reg r) { ASM("msr spsr_el1, %0" : : "r"(r) :); }
+
     static Reg  r0() { Reg r; ASM("mov %0, x0" :  "=r"(r) : : ); return r; }
     static void r0(Reg r) {   ASM("mov x0, %0" : : "r"(r): ); }
 
@@ -297,6 +312,8 @@ public:
     static void iret() { ASM(".ret: br lr"); }
 
     static void mode(unsigned int m) { ASM("msr currentel, %0" : : "r"(m) : "cc"); }
+    
+    static void svc() { ASM("svc #0"); }
 
     static void svc_enter(unsigned int from, bool ret = true) {}
 
@@ -335,8 +352,8 @@ public:
     static Reg spsr_el2() { Reg r; ASM("mrs %0, spsr_el2" : "=r"(r) :); return r; }
     static void spsr_el2(Reg r) { ASM("msr spsr_el2, %0" : : "r"(r) :); }
 
-    static Reg spsr_el1() { Reg r; ASM("mrs %0, spsr_el1" : "=r"(r) :); return r; }
-    static void spsr_el1(Reg r) { ASM("msr spsr_el1, %0" : : "r"(r) :); }
+    static Reg esr_el1() { Reg r; ASM("mrs %0, esr_el1" : "=r"(r) :); return r; }
+    static void esr_el1(Reg r) { ASM("msr esr_el1, %0" : : "r"(r) :); }
 
     static Reg elr_el2() { Reg r; ASM("mrs %0, elr_el2" : "=r"(r) :); return r; }
     static void elr_el2(Reg r) { ASM("msr elr_el2, %0" : : "r"(r) :); }
@@ -435,7 +452,7 @@ public:
     {
     public:
         Context() {}
-        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? FLAG_EL1 : FLAG_EL0)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
+        Context(Log_Addr  entry, Log_Addr exit, Log_Addr usp, bool is_system):_usp(usp), _flags((is_system? SVC_MODE : USER_MODE)), _lr(exit | (thumb ? 1 : 0)), _pc(entry | (thumb ? 1 : 0)) {
             if(Traits<Build>::hysterically_debugged || Traits<Thread>::trace_idle) {
                 _x0 = 0; _x1 = 1; _x2 = 2; _x3 = 3; _x4 = 4; _x5 = 5; _x6 = 6; _x7 = 7; _x8 = 8; _x9 = 9; _x10 = 10; _x11 = 11; _x12 = 12; _x13 = 13; _x14 = 14; _x15 = 15;
                 _x16 = 16; _x17 = 17; _x18 = 18; _x19 = 19; _x20 = 20; _x21 = 21; _x22 = 22; _x23 = 23; _x24 = 24; _x25 = 25; _x26 = 26; _x27 = 27; _x28 = 28; _x29 = 29;
@@ -513,7 +530,8 @@ public:
     using CPU_Common::fdec;	// TODO
     using CPU_Common::cas;	// TODO
  
-    static void smp_barrier(unsigned long cores = cores()) { CPU_Common::smp_barrier<&finc>(cores, id()); }
+    static void smp_barrier() { smp_barrier(cores()); }
+    static void smp_barrier(unsigned long cores) { CPU_Common::smp_barrier<&finc>(cores, id()); }
 
     static void switch_context(Context ** o, Context * n);
 
@@ -537,7 +555,7 @@ public:
     }
 
     static void syscall(void * message);
-    static void syscalled();
+    static void syscalled(void * msg);
 
     using CPU_Common::htole64;
     using CPU_Common::htole32;

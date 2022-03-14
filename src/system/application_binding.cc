@@ -17,12 +17,8 @@ __END_SYS
 
 // Bindings
 extern "C" {
-    // Libc legacy
     void _panic() { _API::Stub_Thread::exit(-1); }
     void _exit(int s) { _API::Stub_Thread::exit(s); for(;;); }
-
-    //void __exit() { _API::Stub_Thread::exit(_SYS::CPU::fr()); }  // must be handled by the Page Fault handler for user-level tasks
-    // void __cxa_pure_virtual() { db<void>(ERR) << "Pure Virtual method called!" << endl; }
 }
 
 __USING_SYS;
@@ -32,7 +28,6 @@ extern "C" {
 
     // OStream
     void _print(const char * s) {
-        // Message msg(Message::ENTITY::DISPLAY, Message::PRINT, reinterpret_cast<int>(s));
         Message msg(0, Message::ENTITY::DISPLAY, Message::PRINT);
         msg.set_params(reinterpret_cast<unsigned long>(s));
         msg.act();

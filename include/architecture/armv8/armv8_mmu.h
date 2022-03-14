@@ -83,11 +83,12 @@ public:
         Page_Flags(unsigned int f) : _flags(f) {}
         Page_Flags(Flags f) : _flags(nG |
                                      ((f & Flags::RW)  ? RW_SYS : RO_SYS) |
-                                     // ((f & Flags::USR) ? RW_USR : 0) | // as we are in EL1, this will brake system
-                                     ((f & Flags::CWT) ? CWT  : CWB) |
-                                     ((f & Flags::CD)  ? CD   : 0) |
-                                     ((f & Flags::EX)  ? 0    : XN) |
-                                     ((f & Flags::IO)  ? IO : 0) ) {}
+                                     ((f & Flags::USR) ? RW_USR : 0)      | // as we are in EL1, this will brake system
+                                     ((f & Flags::CWT) ? CWT    : CWB)    |
+                                     ((f & Flags::CD)  ? CD     : 0)      |
+                                     ((f & Flags::EX)  ? 0      : XN)     |
+                                     ((f & Flags::IO)  ? IO     : 0) 
+                                     ) {}
 
         operator unsigned int() const { return _flags; }
 
@@ -534,8 +535,8 @@ public:
     static Phy_Addr pd() { return CPU::pd(); }
     static void pd(Phy_Addr pd) { CPU::pd(pd); CPU::flush_tlb(); CPU::isb(); CPU::dsb(); }
 
-    // static void flush_tlb() { CPU::flush_tlb(); }
-    static void flush_tlb() {ASM("hvc #0");}
+    static void flush_tlb() { CPU::flush_tlb(); }
+    // static void flush_tlb() {ASM("hvc #0");}
 
     static void init();
 
